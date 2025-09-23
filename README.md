@@ -1,6 +1,6 @@
-# banter
+# Banter
 
-A new Flutter project.
+**Banter** is a beautifully animated Flutter application that transforms WhatsApp chat exports into personalized, shareable recap stories.
 
 ## Getting Started
 
@@ -14,4 +14,3 @@ A few resources to get you started if this is your first Flutter project:
 For help getting started with Flutter development, view the
 [online documentation](https://docs.flutter.dev/), which offers tutorials,
 samples, guidance on mobile development, and a full API reference.
-# banter-app
