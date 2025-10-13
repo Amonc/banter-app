@@ -1,3 +1,4 @@
+import 'package:banter/turorial_page.dart';
 import 'package:flutter/material.dart';
 import 'package:rive/rive.dart';
 import 'package:country_code_picker/country_code_picker.dart';
@@ -270,6 +271,12 @@ class _SplashScreenState extends State<CreateAccount> {
                         child: ElevatedButton(
                           onPressed: () {
                             // Handle show me how action
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => TutorialPage(),
+                              ),
+                            );
                           },
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.white,
