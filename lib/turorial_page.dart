@@ -1,6 +1,7 @@
 import 'package:banter/create_account.dart';
 import 'package:flutter/material.dart';
 import 'package:rive/rive.dart';
+import 'package:file_picker/file_picker.dart';
 
 class TutorialPage extends StatefulWidget {
   const TutorialPage({super.key});
@@ -43,7 +44,7 @@ class _TutorialPageState extends State<TutorialPage> {
     // Listen for the trigger firing (caused by your Rive "Pointer Click" listener)
     _uploadClick!.addListener((bool _) {
       // Will be called each time your Rive button is clicked
-      _showUploadDialog();
+      _pickAndUploadFile();
     });
     setState(() => isInitialized = true);
 
@@ -63,26 +64,17 @@ class _TutorialPageState extends State<TutorialPage> {
     super.dispose();
   }
 
-  void _showUploadDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('Upload'),
-          content: const Text('Ready to upload your content?'),
-          actions: [
-            TextButton(
-              onPressed: () async {
-                _openCook!.trigger();
-                await Future.delayed(Duration(seconds: 5));
-                _openGetReady!.trigger();
-              },
-              child: const Text('Next'),
-            ),
-          ],
-        );
-      },
+  void _pickAndUploadFile() async {
+    FilePickerResult? result = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['zip', 'txt'],
+      allowMultiple: false,
     );
+
+    // File selected, trigger cook animation and continue
+    _openCook!.trigger();
+    await Future.delayed(Duration(seconds: 5));
+    _openGetReady!.trigger();
   }
 
   @override
