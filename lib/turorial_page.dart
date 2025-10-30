@@ -1,4 +1,4 @@
-import 'package:banter/create_account.dart';
+
 import 'package:flutter/material.dart';
 import 'package:rive/rive.dart';
 import 'package:file_picker/file_picker.dart';
