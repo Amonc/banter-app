@@ -1,4 +1,7 @@
-import 'package:banter/create_account.dart';
+import 'dart:io' as io;
+import 'package:banter/backend/chat_func.dart';
+import 'package:banter/model/chat_analysis_response.dart';
+import 'package:banter/breakdown_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:rive/rive.dart';
 import 'package:file_picker/file_picker.dart';
@@ -14,6 +17,9 @@ class _TutorialPageState extends State<TutorialPage> {
   late File file;
   late RiveWidgetController controller;
   bool isInitialized = false;
+  bool isAnalyzing = false;
+  ChatAnalysisResponse? analysisResult;
+  String? errorMessage;
 
   ViewModelInstanceTrigger? _openExport;
   ViewModelInstanceTrigger? _uploadClick;
@@ -65,16 +71,77 @@ class _TutorialPageState extends State<TutorialPage> {
   }
 
   void _pickAndUploadFile() async {
-    FilePickerResult? result = await FilePicker.platform.pickFiles(
-      type: FileType.custom,
-      allowedExtensions: ['zip', 'txt'],
-      allowMultiple: false,
-    );
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['zip', 'txt'],
+        allowMultiple: false,
+      );
 
-    // File selected, trigger cook animation and continue
-    _openCook!.trigger();
-    await Future.delayed(Duration(seconds: 5));
-    _openGetReady!.trigger();
+      if (result == null || result.files.single.path == null) {
+        // User canceled the picker
+        return;
+      }
+
+      setState(() {
+        isAnalyzing = true;
+        errorMessage = null;
+      });
+
+      // File selected, trigger cook animation
+      _openCook!.trigger();
+
+      // Upload and analyze the file
+      final filePath = result.files.single.path!;
+      final selectedFile = io.File(filePath);
+
+      try {
+        final response = await ChatAnalyzer.analyzeChat(selectedFile);
+
+        setState(() {
+          analysisResult = response;
+          isAnalyzing = false;
+        });
+
+        // Trigger get ready animation after analysis completes
+        _openGetReady!.trigger();
+
+        // Wait 5 seconds then navigate to breakdown screen
+        await Future.delayed(const Duration(seconds: 5));
+
+        if (mounted) {
+          Navigator.of(context).push(
+            PageRouteBuilder(
+              pageBuilder: (context, animation, secondaryAnimation) =>
+                  BreakdownScreen(analysisData: response),
+              transitionDuration: Duration.zero,
+              reverseTransitionDuration: Duration.zero,
+            ),
+          );
+        }
+      } catch (e) {
+        setState(() {
+          errorMessage = 'Failed to analyze chat: $e';
+          isAnalyzing = false;
+        });
+
+        // Show error to user
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(errorMessage!),
+              backgroundColor: Colors.red,
+              duration: Duration(seconds: 5),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      setState(() {
+        errorMessage = 'Error picking file: $e';
+        isAnalyzing = false;
+      });
+    }
   }
 
   @override

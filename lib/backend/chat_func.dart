@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'dart:convert';
+import 'package:banter/model/chat_analysis_response.dart';
 
 class ChatAnalyzer {
   static String get _baseUrl => dotenv.env['API_BASE_URL'] ?? '';
@@ -10,10 +11,10 @@ class ChatAnalyzer {
   /// Analyzes a chat file using the backend API
   ///
   /// Takes a [File] object and sends it to the analyze endpoint
-  /// Returns the analysis result as a Map
+  /// Returns the analysis result as a [ChatAnalysisResponse]
   ///
   /// Throws [Exception] if the request fails
-  static Future<Map<String, dynamic>> analyzeChat(File file) async {
+  static Future<ChatAnalysisResponse> analyzeChat(File file) async {
     try {
       final uri = Uri.parse('$_baseUrl/api/v1/analyze');
 
@@ -39,7 +40,8 @@ class ChatAnalyzer {
       var response = await http.Response.fromStream(streamedResponse);
 
       if (response.statusCode == 200) {
-        return json.decode(response.body) as Map<String, dynamic>;
+        final jsonResponse = json.decode(response.body) as Map<String, dynamic>;
+        return ChatAnalysisResponse.fromJson(jsonResponse);
       } else {
         throw Exception(
           'Failed to analyze chat: ${response.statusCode} - ${response.body}',
@@ -53,10 +55,10 @@ class ChatAnalyzer {
   /// Analyzes a chat file from a file path
   ///
   /// Takes a [filePath] string and sends it to the analyze endpoint
-  /// Returns the analysis result as a Map
+  /// Returns the analysis result as a [ChatAnalysisResponse]
   ///
   /// Throws [Exception] if the file doesn't exist or request fails
-  static Future<Map<String, dynamic>> analyzeChatFromPath(
+  static Future<ChatAnalysisResponse> analyzeChatFromPath(
     String filePath,
   ) async {
     final file = File(filePath);

@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:rive/rive.dart';
+import 'package:banter/model/chat_analysis_response.dart';
 
 class BreakdownScreen extends StatefulWidget {
-  const BreakdownScreen({super.key});
+  final ChatAnalysisResponse analysisData;
+
+  const BreakdownScreen({super.key, required this.analysisData});
 
   @override
   State<BreakdownScreen> createState() => _BreakdownScreenState();
@@ -18,6 +21,17 @@ class _BreakdownScreenState extends State<BreakdownScreen> {
   void initState() {
     super.initState();
     initRive();
+  }
+
+  /// Extracts the first name from a full name
+  /// e.g., "John Doe" -> "John", "~ Alice Smith" -> "Alice"
+  String getFirstName(String fullName) {
+    // Remove leading special characters like ~, @, etc.
+    String cleanName = fullName.trim().replaceAll(RegExp(r'^[~@#$%^&*]+\s*'), '');
+
+    // Split by space and take the first part
+    final parts = cleanName.split(' ');
+    return parts.isNotEmpty ? parts[0] : fullName;
   }
 
   void initRive() async {
@@ -37,14 +51,15 @@ class _BreakdownScreenState extends State<BreakdownScreen> {
     final totalMessageCount = vmi.string('total_message_count');
     final mostActiveDay = vmi.string('most_active_day');
 
-    // Set example values (you can customize these or pass them as parameters)
-    typoMachine?.value = 'John';
-    mostSentCount?.value = 'SENT 1,234 MESSAGES';
-    mostSenderName?.value = 'Alice';
-    groupChatName?.value = 'Office Work';
-    textsPerDay?.value = '420';
-    totalMessageCount?.value = '15,678';
-    mostActiveDay?.value = 'Friday';
+    // Set values from actual analysis data
+    final data = widget.analysisData;
+    typoMachine?.value = getFirstName(data.loudestMember.name);
+    mostSentCount?.value = 'SENT ${data.loudestMember.count} MESSAGES';
+    mostSenderName?.value = getFirstName(data.loudestMember.name);
+    groupChatName?.value = data.groupChatName;
+    textsPerDay?.value = data.messageStats.avgMessagesPerDay.toStringAsFixed(1);
+    totalMessageCount?.value = data.messageStats.totalMessages.toString();
+    mostActiveDay?.value = data.messageStats.mostActiveDay;
 
     setState(() => isInitialized = true);
 
@@ -80,16 +95,31 @@ class _BreakdownScreenState extends State<BreakdownScreen> {
     final mostVocal2nd = vmi.string('most_vocal_2nd');
     final mostVocal1st = vmi.string('most_vocal_1st');
 
-    // Set example values
-    typoMachine?.value = 'John';
-    redAlertName?.value = 'Bob';
-    mostRepliesName?.value = 'Sarah';
-    funniestUserName?.value = 'Mike';
-    mostWordsUserName?.value = 'Emma';
-    mostVocal4th?.value = 'Tom';
-    mostVocal3rd?.value = 'Lisa';
-    mostVocal2nd?.value = 'David';
-    mostVocal1st?.value = 'Alice';
+    // Set values from actual analysis data
+    final data = widget.analysisData;
+    typoMachine?.value = getFirstName(data.loudestMember.name);
+    redAlertName?.value = data.redFlags.isNotEmpty ? getFirstName(data.redFlags.first.name) : 'N/A';
+    mostRepliesName?.value = getFirstName(data.mostReplies.name);
+    funniestUserName?.value = getFirstName(data.funniestMember.name);
+    mostWordsUserName?.value = getFirstName(data.mostWords.name);
+
+    // Sort top contributors by count (descending order)
+    final sortedContributors = List.from(data.topContributors)
+      ..sort((a, b) => b.count.compareTo(a.count));
+
+    // Set top contributors (most vocal)
+    if (sortedContributors.length > 3) {
+      mostVocal4th?.value = getFirstName(sortedContributors[3].name);
+    }
+    if (sortedContributors.length > 2) {
+      mostVocal3rd?.value = getFirstName(sortedContributors[2].name);
+    }
+    if (sortedContributors.length > 1) {
+      mostVocal2nd?.value = getFirstName(sortedContributors[1].name);
+    }
+    if (sortedContributors.isNotEmpty) {
+      mostVocal1st?.value = getFirstName(sortedContributors[0].name);
+    }
 
 
     setState(() => showingBreakdown1 = false);
