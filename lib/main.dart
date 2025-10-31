@@ -1,3 +1,6 @@
+
+import 'package:banter/breakdown_screen.dart';
+import 'package:banter/camera_test_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:rive/rive.dart';
 import 'splash_screen.dart';
@@ -33,7 +36,7 @@ class MyApp extends StatelessWidget {
         // tested with just a hot reload.
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
-      home: const SplashScreen(),
+      home: const BreakdownScreen(),
     );
   }
 }

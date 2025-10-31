@@ -14,7 +14,6 @@ class _SplashScreenState extends State<SplashScreen> {
   late RiveWidgetController controller;
   bool isInitialized = false;
 
-  ViewModelInstanceTrigger? _onClick;
   @override
   void initState() {
     super.initState();
@@ -30,7 +29,6 @@ class _SplashScreenState extends State<SplashScreen> {
     final vmi = controller.dataBind(DataBind.auto());
     final click = vmi.trigger('trigger');
 
-    _onClick = click;
 
     // Listen for the trigger firing (caused by your Rive "Pointer Click" listener)
     click!.addListener((bool _) {
@@ -38,7 +36,7 @@ class _SplashScreenState extends State<SplashScreen> {
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => CreateAccount()),
-      );
+      );    
     });
     setState(() => isInitialized = true);
 
