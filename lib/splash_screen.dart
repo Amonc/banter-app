@@ -66,7 +66,7 @@ class _SplashScreenState extends State<SplashScreen> {
     }
     return Scaffold(
       backgroundColor: Colors.white,
-      body: RiveWidget(controller: controller, fit: Fit.cover),
+      body: RiveWidget(controller: controller, fit: Fit.fitWidth),
     );
   }
 }

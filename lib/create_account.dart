@@ -76,7 +76,7 @@ class _SplashScreenState extends State<CreateAccount> {
         children: [
           // Rive animation in the background (stays fixed)
           Positioned.fill(
-            child: RiveWidget(controller: controller, fit: Fit.cover),
+            child: RiveWidget(controller: controller, fit: Fit.fitWidth),
           ),
           // Content overlay
           SafeArea(

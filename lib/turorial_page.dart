@@ -154,7 +154,7 @@ class _TutorialPageState extends State<TutorialPage> {
     }
     return Scaffold(
       backgroundColor: Colors.white,
-      body: RiveWidget(controller: controller, fit: Fit.cover),
+      body: RiveWidget(controller: controller, fit: Fit.fitWidth),
     );
   }
 }

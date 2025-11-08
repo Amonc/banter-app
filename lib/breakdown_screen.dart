@@ -1,3 +1,4 @@
+import 'package:banter/movie_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:rive/rive.dart';
 import 'package:banter/model/chat_analysis_response.dart';
@@ -68,7 +69,16 @@ class _BreakdownScreenState extends State<BreakdownScreen> {
     // Switch to breakdown_2 after 5 seconds
     Future.delayed(const Duration(seconds: 30 ), () {
       switchToBreakdown2();
+      Future.delayed(const Duration(seconds:48), (){
+        Navigator.pushReplacement(context, PageRouteBuilder(
+              pageBuilder: (context, animation, secondaryAnimation) =>
+                 MovieScreen(movieName: widget.analysisData.movieMatch.movie, redAlertName: widget.analysisData.redFlags.first.name,),
+              transitionDuration: Duration.zero,
+              reverseTransitionDuration: Duration.zero,
+            ));
+      });
     });
+
   }
 
   void switchToBreakdown2() async {
@@ -142,7 +152,7 @@ class _BreakdownScreenState extends State<BreakdownScreen> {
     }
     return Scaffold(
       backgroundColor: Colors.white,
-      body: RiveWidget(controller: controller, fit: Fit.fitHeight),
+      body: RiveWidget(controller: controller, fit: Fit.fitWidth),
     );
   }
 }
