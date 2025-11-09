@@ -45,15 +45,17 @@ class _BreakdownScreenState extends State<BreakdownScreen> {
 
     // Bind all the VMI strings for breakdown_1
     final typoMachine = vmi.string('typo_machine');
-    final mostSentCount = vmi.string('most_sent_count');
+    final mostSentCount = vmi.string('most_send_count');
     final mostSenderName = vmi.string('most_sender_name');
     final groupChatName = vmi.string('group_chat_name');
     final textsPerDay = vmi.string('texts_per_day');
     final totalMessageCount = vmi.string('total_message_count');
     final mostActiveDay = vmi.string('most_active_day');
-
+    
     // Set values from actual analysis data
     final data = widget.analysisData;
+    print(data.loudestMember.name);
+    print(data.loudestMember.count);
     typoMachine?.value = getFirstName(data.loudestMember.name);
     mostSentCount?.value = 'SENT ${data.loudestMember.count} MESSAGES';
     mostSenderName?.value = getFirstName(data.loudestMember.name);
@@ -67,7 +69,7 @@ class _BreakdownScreenState extends State<BreakdownScreen> {
     
 
     // Switch to breakdown_2 after 5 seconds
-    Future.delayed(const Duration(seconds: 30 ), () {
+    Future.delayed(const Duration(seconds: 25 ), () {
       switchToBreakdown2();
       Future.delayed(const Duration(seconds:48), (){
         Navigator.pushReplacement(context, PageRouteBuilder(
