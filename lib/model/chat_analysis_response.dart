@@ -32,6 +32,7 @@ class ChatAnalysisResponse {
   });
 
   factory ChatAnalysisResponse.fromJson(Map<String, dynamic> json) {
+    print(json);
     return ChatAnalysisResponse(
       messageStats: MessageStats.fromJson(json['message_stats']),
       loudestMember: LoudestMember.fromJson(json['loudest_member']),
@@ -52,7 +53,7 @@ class ChatAnalysisResponse {
           .toList(),
       movieMatch: MovieMatch.fromJson(json['movie_match']),
       customAnalysis: json['custom_analysis'],
-      groupChatName: json['group_chat_name'],
+      groupChatName: json['group_chat_name']??"",
       responseTimeSeconds: (json['response_time_seconds'] as num).toDouble(),
       tokenUsage: TokenUsage.fromJson(json['token_usage']),
     );
