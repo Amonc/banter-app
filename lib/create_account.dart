@@ -23,6 +23,115 @@ class _SplashScreenState extends State<CreateAccount> {
   final TextEditingController _phoneController = TextEditingController();
   final List<Offset> _drawingPoints = [];
 
+  /// Checks if the drawn pattern matches a checkmark shape
+  /// Returns a confidence score between 0.0 and 1.0
+  double checkCheckmarkMatch(List<Offset> points) {
+    if (points.isEmpty) return 0.0;
+
+    // Remove infinite offsets (stroke separators)
+    final validPoints = points.where((p) => p.isFinite).toList();
+    if (validPoints.length < 5) return 0.0; // Too few points
+
+    // Find bounding box
+    double minX = validPoints.first.dx;
+    double maxX = validPoints.first.dx;
+    double minY = validPoints.first.dy;
+    double maxY = validPoints.first.dy;
+
+    for (final point in validPoints) {
+      minX = minX < point.dx ? minX : point.dx;
+      maxX = maxX > point.dx ? maxX : point.dx;
+      minY = minY < point.dy ? minY : point.dy;
+      maxY = maxY > point.dy ? maxY : point.dy;
+    }
+
+    final width = maxX - minX;
+    final height = maxY - minY;
+
+    if (width < 20 || height < 20) return 0.0; // Too small
+
+    // Normalize points to 0-1 range
+    final normalized = validPoints.map((p) {
+      return Offset(
+        (p.dx - minX) / width,
+        (p.dy - minY) / height,
+      );
+    }).toList();
+
+    // Find the turning point (where direction changes from down-right to up-right)
+    int turningPointIndex = -1;
+    double lowestY = 0.0;
+
+    for (int i = 0; i < normalized.length; i++) {
+      if (normalized[i].dy > lowestY) {
+        lowestY = normalized[i].dy;
+        turningPointIndex = i;
+      }
+    }
+
+    if (turningPointIndex < 2 || turningPointIndex > normalized.length - 3) {
+      return 0.0; // Turning point should be in the middle portion
+    }
+
+    // Split into two segments: before and after turning point
+    final firstSegment = normalized.sublist(0, turningPointIndex + 1);
+    final secondSegment = normalized.sublist(turningPointIndex);
+
+    // Check first segment: should go down and slightly right
+    double firstSegmentScore = 0.0;
+    if (firstSegment.length >= 2) {
+      final firstStart = firstSegment.first;
+      final firstEnd = firstSegment.last;
+
+      // Should move downward (positive Y)
+      final downwardMovement = firstEnd.dy - firstStart.dy;
+
+      // Should move right but not too much
+      final rightwardMovement = firstEnd.dx - firstStart.dx;
+
+      if (downwardMovement > 0.2 && rightwardMovement >= -0.1 && rightwardMovement <= 0.4) {
+        firstSegmentScore = 0.5;
+      }
+    }
+
+    // Check second segment: should go up and to the right
+    double secondSegmentScore = 0.0;
+    if (secondSegment.length >= 2) {
+      final secondStart = secondSegment.first;
+      final secondEnd = secondSegment.last;
+
+      // Should move upward (negative Y change)
+      final upwardMovement = secondStart.dy - secondEnd.dy;
+
+      // Should move significantly to the right
+      final rightwardMovement = secondEnd.dx - secondStart.dx;
+
+      if (upwardMovement > 0.1 && rightwardMovement > 0.2) {
+        secondSegmentScore = 0.5;
+      }
+    }
+
+    // Check aspect ratio (checkmarks are typically wider than tall or roughly square)
+    double aspectScore = 0.0;
+    final aspectRatio = width / height;
+    if (aspectRatio >= 0.7 && aspectRatio <= 2.0) {
+      aspectScore = 0.2;
+    }
+
+    // Check that the turning point is in the left-center area
+    double turningPositionScore = 0.0;
+    final turningX = normalized[turningPointIndex].dx;
+    if (turningX >= 0.2 && turningX <= 0.5) {
+      turningPositionScore = 0.3;
+    }
+
+    // Calculate total confidence
+    final totalScore = firstSegmentScore + secondSegmentScore + aspectScore + turningPositionScore;
+
+    // Normalize to 0-1 range (max possible score is 1.5)
+    return (totalScore / 1.5).clamp(0.0, 1.0);
+  }
+
   @override
   void initState() {
     super.initState();
@@ -200,13 +309,41 @@ class _SplashScreenState extends State<CreateAccount> {
                         setState(() {
                           _drawingPoints.add(Offset.infinite);
                         });
-                        // Trigger import animation after drawing
-                        Future.delayed(const Duration(milliseconds: 500), () {
-                          _openImport!.trigger();
-                          setState(() {
-                            isImportScreen = true;
+
+                        // Check if the drawing matches a checkmark
+                        final matchScore = checkCheckmarkMatch(_drawingPoints);
+                        debugPrint('Checkmark match score: $matchScore');
+
+                        // Require at least 60% match to proceed
+                        if (matchScore >= 0.6) {
+                          // Trigger import animation after successful checkmark
+                          Future.delayed(const Duration(milliseconds: 500), () {
+                            if (!mounted) return;
+                            _openImport!.trigger();
+                            setState(() {
+                              isImportScreen = true;
+                            });
                           });
-                        });
+                        } else {
+                          // Clear the drawing and let user try again
+                          Future.delayed(const Duration(milliseconds: 500), () {
+                            if (!mounted) return;
+                            setState(() {
+                              _drawingPoints.clear();
+                            });
+                            // Optionally show a message to user
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Please draw a checkmark to continue',
+                                  style: GoogleFonts.poppins(),
+                                ),
+                                backgroundColor: const Color(0xFF6B9BD8),
+                                duration: const Duration(seconds: 2),
+                              ),
+                            );
+                          });
+                        }
                       },
                       child: Container(
                         height: 200,
@@ -230,7 +367,7 @@ class _SplashScreenState extends State<CreateAccount> {
                       padding: EdgeInsets.only(
                         bottom: bottomInset > 0 ? bottomInset + 16 : 40,
                       ),
-                      child: Container(
+                      child: SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
                           onPressed: () {
@@ -266,7 +403,7 @@ class _SplashScreenState extends State<CreateAccount> {
                   if (isImportScreen)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 40),
-                      child: Container(
+                      child: SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
                           onPressed: () {
