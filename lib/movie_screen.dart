@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:rive/rive.dart';
+import 'package:banter/chat_screen.dart';
 
 class MovieScreen extends StatefulWidget {
   final String movieName;
@@ -19,6 +20,7 @@ class _MovieScreenState extends State<MovieScreen> {
   late File file;
   late RiveWidgetController controller;
   bool isInitialized = false;
+  bool canNavigateToChat = false;
 
   ViewModelInstanceTrigger? _movieLoading;
   ViewModelInstanceTrigger? _movieTheHangover;
@@ -92,6 +94,10 @@ class _MovieScreenState extends State<MovieScreen> {
 
     if (mounted) {
       _triggerMovieFromResponse();
+      // Enable navigation to chat after 5 seconds
+      setState(() {
+        canNavigateToChat = true;
+      });
     }
   }
 
@@ -109,6 +115,17 @@ class _MovieScreenState extends State<MovieScreen> {
     super.dispose();
   }
 
+  void _navigateToChat() {
+    if (canNavigateToChat) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const ChatScreen(),
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (!isInitialized) {
@@ -119,7 +136,10 @@ class _MovieScreenState extends State<MovieScreen> {
     }
     return Scaffold(
       backgroundColor: Colors.white,
-      body: RiveWidget(controller: controller, fit: Fit.fitWidth),
+      body: GestureDetector(
+        onTap: _navigateToChat,
+        child: RiveWidget(controller: controller, fit: Fit.fitWidth),
+      ),
     );
   }
 }

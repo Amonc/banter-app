@@ -1,3 +1,4 @@
+import 'package:banter/chat_screen.dart';
 import 'package:banter/splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';

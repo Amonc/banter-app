@@ -2,6 +2,7 @@ import 'dart:io' as io;
 import 'package:banter/backend/chat_func.dart';
 import 'package:banter/model/chat_analysis_response.dart';
 import 'package:banter/breakdown_screen.dart';
+import 'package:banter/services/file_storage_service.dart';
 import 'package:flutter/material.dart';
 import 'package:rive/rive.dart';
 import 'package:file_picker/file_picker.dart';
@@ -94,6 +95,9 @@ class _TutorialPageState extends State<TutorialPage> {
       // Upload and analyze the file
       final filePath = result.files.single.path!;
       final selectedFile = io.File(filePath);
+
+      // Save the file to memory for later use in chat screen
+      FileStorageService().saveChatFile(selectedFile);
 
       try {
         final response = await ChatAnalyzer.analyzeChat(selectedFile);
