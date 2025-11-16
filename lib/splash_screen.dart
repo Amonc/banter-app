@@ -2,6 +2,31 @@ import 'package:banter/create_account.dart';
 import 'package:flutter/material.dart';
 import 'package:rive/rive.dart';
 
+/// Custom controller that allows pausing animation while keeping pointer events active
+base class PausableRiveController extends RiveWidgetController {
+  PausableRiveController(super.file);
+
+  bool _isPaused = false;
+
+  void pauseAnimation() {
+    _isPaused = true;
+  }
+
+  void resumeAnimation() {
+    _isPaused = false;
+    scheduleRepaint(); // Ensure animation continues
+  }
+
+  @override
+  bool advance(double elapsedSeconds) {
+    if (_isPaused) {
+      // Still process state machine but don't advance time
+      return active;
+    }
+    return super.advance(elapsedSeconds);
+  }
+}
+
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -11,8 +36,9 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen> {
   late File file;
-  late RiveWidgetController controller;
+  late PausableRiveController controller;
   bool isInitialized = false;
+  bool isPaused = false;
 
   @override
   void initState() {
@@ -25,7 +51,7 @@ class _SplashScreenState extends State<SplashScreen> {
       "assets/splash_screen.riv",
       riveFactory: Factory.rive,
     ))!;
-    controller = RiveWidgetController(file);
+    controller = PausableRiveController(file);
     final vmi = controller.dataBind(DataBind.auto());
     final click = vmi.trigger('trigger');
 
@@ -66,7 +92,30 @@ class _SplashScreenState extends State<SplashScreen> {
     }
     return Scaffold(
       backgroundColor: Colors.white,
-      body: RiveWidget(controller: controller, fit: Fit.fitWidth),
+      body: Listener(
+        onPointerDown: (_) {
+          // Pause animation when touching the screen
+          setState(() {
+            isPaused = true;
+            controller.pauseAnimation();
+          });
+        },
+        onPointerUp: (_) {
+          // Resume animation when releasing
+          setState(() {
+            isPaused = false;
+            controller.resumeAnimation();
+          });
+        },
+        onPointerCancel: (_) {
+          // Resume animation if touch is cancelled
+          setState(() {
+            isPaused = false;
+            controller.resumeAnimation();
+          });
+        },
+        child: RiveWidget(controller: controller, fit: Fit.fitWidth),
+      ),
     );
   }
 }

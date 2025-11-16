@@ -2,6 +2,31 @@ import 'package:flutter/material.dart';
 import 'package:rive/rive.dart';
 import 'package:banter/chat_screen.dart';
 
+/// Custom controller that allows pausing animation while keeping pointer events active
+base class PausableRiveController extends RiveWidgetController {
+  PausableRiveController(super.file);
+
+  bool _isPaused = false;
+
+  void pauseAnimation() {
+    _isPaused = true;
+  }
+
+  void resumeAnimation() {
+    _isPaused = false;
+    scheduleRepaint(); // Ensure animation continues
+  }
+
+  @override
+  bool advance(double elapsedSeconds) {
+    if (_isPaused) {
+      // Still process state machine but don't advance time
+      return active;
+    }
+    return super.advance(elapsedSeconds);
+  }
+}
+
 class MovieScreen extends StatefulWidget {
   final String movieName;
   final String redAlertName;
@@ -18,7 +43,7 @@ class MovieScreen extends StatefulWidget {
 
 class _MovieScreenState extends State<MovieScreen> {
   late File file;
-  late RiveWidgetController controller;
+  late PausableRiveController controller;
   bool isInitialized = false;
   bool canNavigateToChat = false;
 
@@ -50,7 +75,7 @@ class _MovieScreenState extends State<MovieScreen> {
       "assets/breakdown_3.riv",
       riveFactory: Factory.rive,
     ))!;
-    controller = RiveWidgetController(file);
+    controller = PausableRiveController(file);
     final vmi = controller.dataBind(DataBind.auto());
 
     // Initialize all triggers
@@ -99,6 +124,8 @@ class _MovieScreenState extends State<MovieScreen> {
         canNavigateToChat = true;
       });
     }
+    await Future.delayed(const Duration(seconds: 10));
+    Navigator.push(context, MaterialPageRoute(builder: (context)=>ChatScreen()));
   }
 
   void _triggerMovieFromResponse() {
@@ -136,9 +163,23 @@ class _MovieScreenState extends State<MovieScreen> {
     }
     return Scaffold(
       backgroundColor: Colors.white,
-      body: GestureDetector(
-        onTap: _navigateToChat,
-        child: RiveWidget(controller: controller, fit: Fit.fitWidth),
+      body: Listener(
+        onPointerDown: (_) {
+          // Pause animation when touching the screen
+          controller.pauseAnimation();
+        },
+        onPointerUp: (_) {
+          // Resume animation when releasing
+          controller.resumeAnimation();
+        },
+        onPointerCancel: (_) {
+          // Resume animation if touch is cancelled
+          controller.resumeAnimation();
+        },
+        child: GestureDetector(
+          onDoubleTap: _navigateToChat,
+          child: RiveWidget(controller: controller, fit: Fit.fitWidth),
+        ),
       ),
     );
   }

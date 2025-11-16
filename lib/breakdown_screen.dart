@@ -3,6 +3,31 @@ import 'package:flutter/material.dart';
 import 'package:rive/rive.dart';
 import 'package:banter/model/chat_analysis_response.dart';
 
+/// Custom controller that allows pausing animation while keeping pointer events active
+base class PausableRiveController extends RiveWidgetController {
+  PausableRiveController(super.file);
+
+  bool _isPaused = false;
+
+  void pauseAnimation() {
+    _isPaused = true;
+  }
+
+  void resumeAnimation() {
+    _isPaused = false;
+    scheduleRepaint(); // Ensure animation continues
+  }
+
+  @override
+  bool advance(double elapsedSeconds) {
+    if (_isPaused) {
+      // Still process state machine but don't advance time
+      return active;
+    }
+    return super.advance(elapsedSeconds);
+  }
+}
+
 class BreakdownScreen extends StatefulWidget {
   final ChatAnalysisResponse analysisData;
 
@@ -14,14 +39,48 @@ class BreakdownScreen extends StatefulWidget {
 
 class _BreakdownScreenState extends State<BreakdownScreen> {
   late File file;
-  late RiveWidgetController controller;
+  late PausableRiveController controller;
   bool isInitialized = false;
   bool showingBreakdown1 = false;
+
+  // Timer management
+  final Stopwatch _stopwatch = Stopwatch();
+  bool _hasStartedTimer = false;
+  bool _hasSwitchedToBreakdown2 = false;
+  bool _hasNavigatedToMovie = false;
 
   @override
   void initState() {
     super.initState();
     initRive();
+  }
+
+  void _checkTimers() {
+    if (!_hasStartedTimer || !_stopwatch.isRunning) return;
+
+    final elapsed = _stopwatch.elapsed;
+
+    // Switch to breakdown_2 after 25 seconds
+    if (!_hasSwitchedToBreakdown2 && elapsed.inSeconds >= 25) {
+      _hasSwitchedToBreakdown2 = true;
+      switchToBreakdown2();
+    }
+
+    // Navigate to movie screen after 73 seconds (25 + 48)
+    if (!_hasNavigatedToMovie && elapsed.inSeconds >= 73) {
+      _hasNavigatedToMovie = true;
+      if (mounted) {
+        Navigator.pushReplacement(context, PageRouteBuilder(
+          pageBuilder: (context, animation, secondaryAnimation) =>
+            MovieScreen(
+              movieName: widget.analysisData.movieMatch.movie,
+              redAlertName: widget.analysisData.redFlags.first.name,
+            ),
+          transitionDuration: Duration.zero,
+          reverseTransitionDuration: Duration.zero,
+        ));
+      }
+    }
   }
 
   /// Extracts the first name from a full name
@@ -40,7 +99,7 @@ class _BreakdownScreenState extends State<BreakdownScreen> {
       "assets/breakdown_1.riv",
       riveFactory: Factory.rive,
     ))!;
-    controller = RiveWidgetController(file);
+    controller = PausableRiveController(file);
     final vmi = controller.dataBind(DataBind.auto());
 
     // Bind all the VMI strings for breakdown_1
@@ -54,8 +113,6 @@ class _BreakdownScreenState extends State<BreakdownScreen> {
     
     // Set values from actual analysis data
     final data = widget.analysisData;
-    print(data.loudestMember.name);
-    print(data.loudestMember.count);
     typoMachine?.value = getFirstName(data.loudestMember.name);
     mostSentCount?.value = 'SENT ${data.loudestMember.count} MESSAGES';
     mostSenderName?.value = getFirstName(data.loudestMember.name);
@@ -66,21 +123,19 @@ class _BreakdownScreenState extends State<BreakdownScreen> {
 
     setState(() => isInitialized = true);
 
-    
+    // Start the stopwatch and begin checking timers
+    _stopwatch.start();
+    _hasStartedTimer = true;
 
-    // Switch to breakdown_2 after 5 seconds
-    Future.delayed(const Duration(seconds: 25 ), () {
-      switchToBreakdown2();
-      Future.delayed(const Duration(seconds:48), (){
-        Navigator.pushReplacement(context, PageRouteBuilder(
-              pageBuilder: (context, animation, secondaryAnimation) =>
-                 MovieScreen(movieName: widget.analysisData.movieMatch.movie, redAlertName: widget.analysisData.redFlags.first.name,),
-              transitionDuration: Duration.zero,
-              reverseTransitionDuration: Duration.zero,
-            ));
-      });
+    // Check timers periodically (every 100ms)
+    Future.doWhile(() async {
+      await Future.delayed(const Duration(milliseconds: 100));
+      if (mounted) {
+        _checkTimers();
+        return !_hasNavigatedToMovie; // Continue until navigated to movie
+      }
+      return false;
     });
-
   }
 
   void switchToBreakdown2() async {
@@ -93,7 +148,7 @@ class _BreakdownScreenState extends State<BreakdownScreen> {
       "assets/breakdown_2.riv",
       riveFactory: Factory.rive,
     ))!;
-    controller = RiveWidgetController(file);
+    controller = PausableRiveController(file);
     final vmi = controller.dataBind(DataBind.auto());
 
     // Bind all the VMI strings for breakdown_2
@@ -154,7 +209,30 @@ class _BreakdownScreenState extends State<BreakdownScreen> {
     }
     return Scaffold(
       backgroundColor: Colors.white,
-      body: RiveWidget(controller: controller, fit: Fit.fitWidth),
+      body: Listener(
+        onPointerDown: (_) {
+          // Pause animation and timer when touching the screen
+          controller.pauseAnimation();
+          if (_stopwatch.isRunning) {
+            _stopwatch.stop();
+          }
+        },
+        onPointerUp: (_) {
+          // Resume animation and timer when releasing
+          controller.resumeAnimation();
+          if (!_stopwatch.isRunning && _hasStartedTimer) {
+            _stopwatch.start();
+          }
+        },
+        onPointerCancel: (_) {
+          // Resume animation and timer if touch is cancelled
+          controller.resumeAnimation();
+          if (!_stopwatch.isRunning && _hasStartedTimer) {
+            _stopwatch.start();
+          }
+        },
+        child: RiveWidget(controller: controller, fit: Fit.fitWidth),
+      ),
     );
   }
 }
