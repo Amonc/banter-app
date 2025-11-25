@@ -22,7 +22,7 @@ class _TutorialPageState extends State<TutorialPage> {
   ChatAnalysisResponse? analysisResult;
   String? errorMessage;
 
-  ViewModelInstanceTrigger? _openExport;
+
   ViewModelInstanceTrigger? _uploadClick;
   ViewModelInstanceTrigger? _openCook;
   ViewModelInstanceTrigger? _openGetReady;
@@ -40,7 +40,7 @@ class _TutorialPageState extends State<TutorialPage> {
     ))!;
     controller = RiveWidgetController(file);
     final vmi = controller.dataBind(DataBind.auto());
-    _openExport = vmi.trigger('open_export');
+    
 
     _uploadClick = vmi.trigger('upload_click');
 
