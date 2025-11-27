@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:rive/rive.dart';
 import 'package:banter/model/chat_analysis_response.dart';
+import 'package:banter/chat_screen.dart';
 
 /// Enum to track which breakdown is currently active
 enum BreakdownState {
@@ -12,6 +14,7 @@ enum BreakdownState {
   breakdown7,
   breakdown8,
   breakdown9,
+  breakdown10,
 }
 
 /// Custom controller that allows pausing animation while keeping pointer events active
@@ -73,12 +76,31 @@ class _BreakdownScreenState extends State<BreakdownScreen> {
   ViewModelInstanceTrigger? _breakdown8Trigger;
   ViewModelInstanceTrigger? _breakdown9Trigger;
 
-  // Track which Rive file is currently loaded
-  bool _isBreakdown2Loaded = false;
+  // Trigger references for breakdown_10.riv (movie screen)
+  ViewModelInstanceTrigger? _movieLoadingTrigger;
+  ViewModelInstanceTrigger? _movieTheHangoverTrigger;
+  ViewModelInstanceTrigger? _movieTheHungerGamesTrigger;
+  ViewModelInstanceTrigger? _movieTheDevilWearsPradaTrigger;
+  ViewModelInstanceTrigger? _movieMeanGirlsTrigger;
+  ViewModelInstanceTrigger? _movieTheBreakfastClubTrigger;
+  ViewModelInstanceTrigger? _movieWolfOfWallStreetTrigger;
+  ViewModelInstanceTrigger? _movieMoneyballTrigger;
+  ViewModelInstanceTrigger? _movieNapoleonDynamiteTrigger;
+  ViewModelInstanceTrigger? _movieInsideOutTrigger;
+  ViewModelInstanceTrigger? _movieProjectXTrigger;
+
+  // Map of movie names to their trigger functions
+  Map<String, ViewModelInstanceTrigger?> _movieTriggers = {};
+
+  // Track which Rive file is currently loaded (0 = breakdown_1_to_4, 1 = breakdown_5_to_9, 2 = breakdown_10)
+  int _currentRiveFile = 0;
 
   // Track press duration to distinguish tap from hold
   DateTime? _pressStartTime;
   static const _tapThreshold = Duration(milliseconds: 200);
+
+  // Timer for auto-advancing from breakdown_9 to breakdown_10
+  Timer? _breakdown9Timer;
 
 
   @override
@@ -112,7 +134,17 @@ class _BreakdownScreenState extends State<BreakdownScreen> {
         _breakdown9Trigger?.trigger();
         break;
       case BreakdownState.breakdown9:
-        // Already at the last breakdown, do nothing
+        // Cancel auto-advance timer since user manually navigated
+        _breakdown9Timer?.cancel();
+        // Transition to breakdown_10.riv (movie screen)
+        _loadBreakdown10File();
+        break;
+      case BreakdownState.breakdown10:
+        // Navigate to chat screen
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const ChatScreen()),
+        );
         break;
     }
   }
@@ -143,7 +175,13 @@ class _BreakdownScreenState extends State<BreakdownScreen> {
         _breakdown7Trigger?.trigger();
         break;
       case BreakdownState.breakdown9:
+        // Cancel auto-advance timer since user manually navigated back
+        _breakdown9Timer?.cancel();
         _breakdown8Trigger?.trigger();
+        break;
+      case BreakdownState.breakdown10:
+        // Transition back to breakdown_5_to_9.riv and show breakdown_9
+        _loadBreakdown2File(goToBreakdown9: true);
         break;
     }
   }
@@ -167,7 +205,7 @@ class _BreakdownScreenState extends State<BreakdownScreen> {
     setState(() => isInitialized = false);
 
     // Dispose existing resources if they exist
-    if (_isBreakdown2Loaded) {
+    if (_currentRiveFile != 0) {
       controller.dispose();
       file.dispose();
     }
@@ -235,7 +273,7 @@ class _BreakdownScreenState extends State<BreakdownScreen> {
       }
     });
 
-    _isBreakdown2Loaded = false;
+    _currentRiveFile = 0;
     setState(() => isInitialized = true);
 
     // Trigger the appropriate breakdown based on context
@@ -248,7 +286,7 @@ class _BreakdownScreenState extends State<BreakdownScreen> {
     }
   }
 
-  void _loadBreakdown2File() async {
+  void _loadBreakdown2File({bool goToBreakdown9 = false}) async {
     setState(() => isInitialized = false);
 
     // Dispose existing resources
@@ -268,6 +306,12 @@ class _BreakdownScreenState extends State<BreakdownScreen> {
     _breakdown7Trigger = vmi.trigger('breakdown_7_enter');
     _breakdown8Trigger = vmi.trigger('breakdown_8_enter');
     _breakdown9Trigger = vmi.trigger('breakdown_9_enter');
+
+    // Set showLastImmediately to skip to breakdown_9 when going back from breakdown_10
+    final showLastImmediately = vmi.boolean('showLastImmediately');
+    if (goToBreakdown9) {
+      showLastImmediately?.value = true;
+    }
 
     // Bind all the VMI strings for breakdown_2
     final typoMachine = vmi.string('typo_machine');
@@ -336,20 +380,129 @@ class _BreakdownScreenState extends State<BreakdownScreen> {
           if (_currentBreakdown != BreakdownState.breakdown9) {
             setState(() => _currentBreakdown = BreakdownState.breakdown9);
           }
+          // Reset showLastImmediately so going back from breakdown_6 shows breakdown_5
+          showLastImmediately?.value = false;
+          // Start auto-advance timer to breakdown_10 after 6 seconds
+          _breakdown9Timer?.cancel();
+          _breakdown9Timer = Timer(const Duration(seconds: 6), () {
+            if (mounted && _currentBreakdown == BreakdownState.breakdown9) {
+              _loadBreakdown10File();
+            }
+          });
           break;
       }
     });
 
-    _isBreakdown2Loaded = true;
+    _currentRiveFile = 1;
     setState(() => isInitialized = true);
 
-    // Trigger breakdown_5 to start the animation sequence
-    _breakdown5Trigger?.trigger();
+    // Trigger the appropriate breakdown based on context
+    if (goToBreakdown9) {
+      // Coming back from breakdown_10 - set state immediately
+      setState(() => _currentBreakdown = BreakdownState.breakdown9);
+      _breakdown9Trigger?.trigger();
+    } else {
+      // Trigger breakdown_5 to start the animation sequence
+      _breakdown5Trigger?.trigger();
+    }
+  }
+
+  void _loadBreakdown10File() async {
+    setState(() => isInitialized = false);
+
+    // Dispose existing resources
+    controller.dispose();
+    file.dispose();
+
+    file = (await File.asset(
+      "assets/breakdown_10.riv",
+      riveFactory: Factory.rive,
+    ))!;
+    controller = PausableRiveController(file);
+    final vmi = controller.dataBind(DataBind.auto());
+
+    // Initialize all movie triggers
+    _movieLoadingTrigger = vmi.trigger('movie_loading');
+    _movieTheHangoverTrigger = vmi.trigger('movie_the hangover');
+    _movieTheHungerGamesTrigger = vmi.trigger('movie_the_hunger_games');
+    _movieTheDevilWearsPradaTrigger = vmi.trigger('movie_the_devil_wears_pra...');
+    _movieMeanGirlsTrigger = vmi.trigger('movie_mean_girls');
+    _movieTheBreakfastClubTrigger = vmi.trigger('movie_the_breakfast_club');
+    _movieWolfOfWallStreetTrigger = vmi.trigger('movie_the_wolf_of_wall_str...');
+    _movieMoneyballTrigger = vmi.trigger('movie_money_ball');
+    _movieNapoleonDynamiteTrigger = vmi.trigger('movie_napolean_dynamite');
+    _movieInsideOutTrigger = vmi.trigger('movie_inside_out');
+    _movieProjectXTrigger = vmi.trigger('movie_project_x');
+
+    // Initialize red_alert_name string
+    final redAlertName = vmi.string('red_alert_name');
+    final data = widget.analysisData;
+    redAlertName?.value = data.redFlags.isNotEmpty ? getFirstName(data.redFlags.first.name) : 'N/A';
+
+    // Create mapping
+    _movieTriggers = {
+      'The Hangover': _movieTheHangoverTrigger,
+      'The Hunger Games': _movieTheHungerGamesTrigger,
+      'The Devil Wears Prada': _movieTheDevilWearsPradaTrigger,
+      'Mean Girls': _movieMeanGirlsTrigger,
+      'Bridesmaids': _movieMeanGirlsTrigger,
+      'The Breakfast Club': _movieTheBreakfastClubTrigger,
+      'Wolf of Wall Street': _movieWolfOfWallStreetTrigger,
+      'The Wolf of Wall Street': _movieWolfOfWallStreetTrigger,
+      'Moneyball': _movieMoneyballTrigger,
+      'Napoleon Dynamite': _movieNapoleonDynamiteTrigger,
+      'Inside Out': _movieInsideOutTrigger,
+      'Project X': _movieProjectXTrigger,
+    };
+
+    // Listen for state machine state changes
+    controller.stateMachine.addEventListener((event) {
+      print('State changed: ${event.name}');
+
+      // Update to breakdown_10 state for any movie state
+      if (_currentBreakdown != BreakdownState.breakdown10) {
+        setState(() => _currentBreakdown = BreakdownState.breakdown10);
+      }
+    });
+
+    _currentRiveFile = 2;
+    setState(() {
+      isInitialized = true;
+      _currentBreakdown = BreakdownState.breakdown10;
+    });
+
+    // Trigger movie_loading first
+    _movieLoadingTrigger?.trigger();
+
+    // Wait 5 seconds then trigger the appropriate movie based on analysis data
+    await Future.delayed(const Duration(seconds: 5));
+
+    if (mounted) {
+      _triggerMovieFromResponse();
+    }
+
+    // Auto-navigate to chat screen after 6 more seconds (11 seconds total)
+    await Future.delayed(const Duration(seconds: 6));
+
+    if (mounted) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const ChatScreen()),
+      );
+    }
+  }
+
+  void _triggerMovieFromResponse() {
+    final movieName = widget.analysisData.movieMatch.movie;
+    if (_movieTriggers.containsKey(movieName)) {
+      _movieTriggers[movieName]?.trigger();
+    }
   }
 
 
   @override
   void dispose() {
+    _breakdown9Timer?.cancel();
     file.dispose();
     controller.dispose();
     super.dispose();
