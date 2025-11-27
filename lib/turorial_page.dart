@@ -117,7 +117,10 @@ class _TutorialPageState extends State<TutorialPage> {
           Navigator.of(context).push(
             PageRouteBuilder(
               pageBuilder: (context, animation, secondaryAnimation) =>
-                  BreakdownScreen(analysisData: response),
+                  BreakdownScreen(
+                    analysisData: response,
+                    showlastImmediately: false,
+                  ),
               transitionDuration: Duration.zero,
               reverseTransitionDuration: Duration.zero,
             ),
