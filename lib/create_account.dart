@@ -17,9 +17,10 @@ class _SplashScreenState extends State<CreateAccount> {
   bool isInitialized = false;
   ViewModelInstanceTrigger? _openDraw;
   ViewModelInstanceTrigger? _openImport;
-  bool isCreateAccountButtonVisible = true;
+  bool isCreateAccountButtonVisible = false;
   bool isDrawingCheckmark = false;
   bool isImportScreen = false;
+  bool isShowingIntro = true;
   final TextEditingController _phoneController = TextEditingController();
   final List<Offset> _drawingPoints = [];
 
@@ -52,10 +53,7 @@ class _SplashScreenState extends State<CreateAccount> {
 
     // Normalize points to 0-1 range
     final normalized = validPoints.map((p) {
-      return Offset(
-        (p.dx - minX) / width,
-        (p.dy - minY) / height,
-      );
+      return Offset((p.dx - minX) / width, (p.dy - minY) / height);
     }).toList();
 
     // Find the turning point (where direction changes from down-right to up-right)
@@ -89,7 +87,9 @@ class _SplashScreenState extends State<CreateAccount> {
       // Should move right but not too much
       final rightwardMovement = firstEnd.dx - firstStart.dx;
 
-      if (downwardMovement > 0.2 && rightwardMovement >= -0.1 && rightwardMovement <= 0.4) {
+      if (downwardMovement > 0.2 &&
+          rightwardMovement >= -0.1 &&
+          rightwardMovement <= 0.4) {
         firstSegmentScore = 0.5;
       }
     }
@@ -126,7 +126,11 @@ class _SplashScreenState extends State<CreateAccount> {
     }
 
     // Calculate total confidence
-    final totalScore = firstSegmentScore + secondSegmentScore + aspectScore + turningPositionScore;
+    final totalScore =
+        firstSegmentScore +
+        secondSegmentScore +
+        aspectScore +
+        turningPositionScore;
 
     // Normalize to 0-1 range (max possible score is 1.5)
     return (totalScore / 1.5).clamp(0.0, 1.0);
@@ -149,6 +153,17 @@ class _SplashScreenState extends State<CreateAccount> {
     _openImport = vmi.trigger('open_import');
 
     setState(() => isInitialized = true);
+
+    // Let the intro animation play, then trigger draw state
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) {
+        _openDraw!.trigger();
+        setState(() {
+          isShowingIntro = false;
+          isDrawingCheckmark = true;
+        });
+      }
+    });
 
     // controller.advance(0);
     // await Future.delayed(Duration(seconds: 2));
@@ -187,257 +202,264 @@ class _SplashScreenState extends State<CreateAccount> {
           Positioned.fill(
             child: RiveWidget(controller: controller, fit: Fit.fitWidth),
           ),
-          // Content overlay
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 60),
-                  // Title text - changes based on state
-                  Text(
-                    isImportScreen
-                        ? "Let's Import\nYour Group Chat"
-                        : (isDrawingCheckmark
-                              ? "Your Privacy\nMatters."
-                              : "Let's Get\nStarted!"),
-                    style: GoogleFonts.poppins(
-                      fontSize: 30,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                      height: 1.1,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  // Subtitle text - changes based on state
-                  Text(
-                    isImportScreen
-                        ? "We support WhatsApp only."
-                        : (isDrawingCheckmark
-                              ? "If you love privacy & security, please\ndraw a checkmark here:"
-                              : "Enter your phone number. We will\nsend you a confirmation code there."),
-                    style: GoogleFonts.poppins(
-                      fontSize: 14,
-                      color: Colors.white,
-                      height: 1.4,
-                    ),
-                  ),
-                  const SizedBox(height: 32),
-                  // Phone input field - only shown initially
-                  if (isCreateAccountButtonVisible)
-                    Container(
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF6B9BD8),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      child: Row(
-                        children: [
-                          // Country code picker
-                          CountryCodePicker(
-                            onChanged: (countryCode) {
-                              print(countryCode);
-                            },
-                            initialSelection: 'US',
-                            favorite: const ['+1', 'US'],
-                            showCountryOnly: false,
-                            showOnlyCountryWhenClosed: false,
-                            alignLeft: false,
-                            padding: EdgeInsets.zero,
-                            textStyle: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
-                            ),
-                            dialogTextStyle: const TextStyle(
-                              color: Colors.black,
-                            ),
-                            flagWidth: 28,
-                            backgroundColor: const Color(0xFF6B9BD8),
-                            dialogBackgroundColor: Colors.white,
-                            barrierColor: Colors.black54,
-                          ),
-                          Expanded(
-                            child: TextField(
-                              controller: _phoneController,
-                              keyboardType: TextInputType.phone,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                              ),
-                              decoration: const InputDecoration(
-                                border: InputBorder.none,
-                                hintText: '(650) 213-7390',
-                                hintStyle: TextStyle(color: Color(0xFFB8D4F0)),
-                                contentPadding: EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                ),
-                              ),
-                            ),
-                          ),
-                          IconButton(
-                            icon: const Icon(
-                              Icons.cancel,
-                              color: Color(0xFFB8D4F0),
-                              size: 20,
-                            ),
-                            onPressed: () {
-                              _phoneController.clear();
-                            },
-                          ),
-                        ],
+          // Content overlay - hidden during intro animation
+          if (!isShowingIntro)
+            SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 60),
+                    // Title text - changes based on state
+                    Text(
+                      isImportScreen
+                          ? "Let's Import\nYour Group Chat"
+                          : "Your Privacy\nMatters.",
+                      style: GoogleFonts.poppins(
+                        fontSize: 30,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        height: 1.1,
                       ),
                     ),
-                  // Drawing area - shown after create account button click
-                  if (isDrawingCheckmark && !isImportScreen)
-                    GestureDetector(
-                      onPanStart: (details) {
-                        setState(() {
-                          _drawingPoints.add(details.localPosition);
-                        });
-                      },
-                      onPanUpdate: (details) {
-                        setState(() {
-                          _drawingPoints.add(details.localPosition);
-                        });
-                      },
-                      onPanEnd: (details) {
-                        setState(() {
-                          _drawingPoints.add(Offset.infinite);
-                        });
-
-                        // Check if the drawing matches a checkmark
-                        final matchScore = checkCheckmarkMatch(_drawingPoints);
-                        debugPrint('Checkmark match score: $matchScore');
-
-                        // Require at least 60% match to proceed
-                        if (matchScore >= 0.6) {
-                          // Trigger import animation after successful checkmark
-                          Future.delayed(const Duration(milliseconds: 500), () {
-                            if (!mounted) return;
-                            _openImport!.trigger();
-                            setState(() {
-                              isImportScreen = true;
-                            });
-                          });
-                        } else {
-                          // Clear the drawing and let user try again
-                          Future.delayed(const Duration(milliseconds: 500), () {
-                            if (!mounted) return;
-                            setState(() {
-                              _drawingPoints.clear();
-                            });
-                            // Optionally show a message to user
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(
-                                  'Please draw a checkmark to continue',
-                                  style: GoogleFonts.poppins(),
-                                ),
-                                backgroundColor: const Color(0xFF6B9BD8),
-                                duration: const Duration(seconds: 2),
-                              ),
-                            );
-                          });
-                        }
-                      },
-                      child: Container(
-                        height: 200,
+                    const SizedBox(height: 16),
+                    // Subtitle text - changes based on state
+                    Text(
+                      isImportScreen
+                          ? "We support WhatsApp only."
+                          : "If you love privacy & security, please\ndraw a checkmark here:",
+                      style: GoogleFonts.poppins(
+                        fontSize: 14,
+                        color: Colors.white,
+                        height: 1.4,
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    // Phone input field - only shown initially
+                    if (isCreateAccountButtonVisible)
+                      Container(
                         decoration: BoxDecoration(
                           color: const Color(0xFF6B9BD8),
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: CustomPaint(
-                            painter: DrawingPainter(_drawingPoints),
-                            size: Size.infinite,
-                          ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
                         ),
-                      ),
-                    ),
-                  const Spacer(),
-                  // Create Account button - moves up with keyboard
-                  if (isCreateAccountButtonVisible)
-                    Padding(
-                      padding: EdgeInsets.only(
-                        bottom: bottomInset > 0 ? bottomInset + 16 : 40,
-                      ),
-                      child: SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            FocusScope.of(
-                              context,
-                            ).unfocus(); // Dismiss keyboard
-                            setState(() {
-                              isCreateAccountButtonVisible = false;
-                              isDrawingCheckmark = true;
-                            });
-                            _openDraw!.trigger();
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white,
-                            foregroundColor: Colors.black,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            elevation: 0,
-                          ),
-                          child: Text(
-                            'Create Account',
-                            style: GoogleFonts.poppins(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  // Show Me How button - shown on import screen
-                  if (isImportScreen)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 40),
-                      child: SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            // Handle show me how action
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => TutorialPage(),
+                        child: Row(
+                          children: [
+                            // Country code picker
+                            CountryCodePicker(
+                              onChanged: (countryCode) {
+                                print(countryCode);
+                              },
+                              initialSelection: 'US',
+                              favorite: const ['+1', 'US'],
+                              showCountryOnly: false,
+                              showOnlyCountryWhenClosed: false,
+                              alignLeft: false,
+                              padding: EdgeInsets.zero,
+                              textStyle: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
                               ),
-                            );
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white,
-                            foregroundColor: Colors.black,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                              dialogTextStyle: const TextStyle(
+                                color: Colors.black,
+                              ),
+                              flagWidth: 28,
+                              backgroundColor: const Color(0xFF6B9BD8),
+                              dialogBackgroundColor: Colors.white,
+                              barrierColor: Colors.black54,
                             ),
-                            elevation: 0,
+                            Expanded(
+                              child: TextField(
+                                controller: _phoneController,
+                                keyboardType: TextInputType.phone,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                ),
+                                decoration: const InputDecoration(
+                                  border: InputBorder.none,
+                                  hintText: '(650) 213-7390',
+                                  hintStyle: TextStyle(
+                                    color: Color(0xFFB8D4F0),
+                                  ),
+                                  contentPadding: EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(
+                                Icons.cancel,
+                                color: Color(0xFFB8D4F0),
+                                size: 20,
+                              ),
+                              onPressed: () {
+                                _phoneController.clear();
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                    // Drawing area - shown after create account button click
+                    if (isDrawingCheckmark && !isImportScreen)
+                      GestureDetector(
+                        onPanStart: (details) {
+                          setState(() {
+                            _drawingPoints.add(details.localPosition);
+                          });
+                        },
+                        onPanUpdate: (details) {
+                          setState(() {
+                            _drawingPoints.add(details.localPosition);
+                          });
+                        },
+                        onPanEnd: (details) {
+                          setState(() {
+                            _drawingPoints.add(Offset.infinite);
+                          });
+
+                          // Check if the drawing matches a checkmark
+                          final matchScore = checkCheckmarkMatch(
+                            _drawingPoints,
+                          );
+                          debugPrint('Checkmark match score: $matchScore');
+
+                          // Require at least 60% match to proceed
+                          if (matchScore >= 0.6) {
+                            // Trigger import animation after successful checkmark
+                            Future.delayed(
+                              const Duration(milliseconds: 500),
+                              () {
+                                if (!mounted) return;
+                                _openImport!.trigger();
+                                setState(() {
+                                  isImportScreen = true;
+                                });
+                              },
+                            );
+                          } else {
+                            // Clear the drawing and let user try again
+                            Future.delayed(
+                              const Duration(milliseconds: 500),
+                              () {
+                                if (!mounted) return;
+                                setState(() {
+                                  _drawingPoints.clear();
+                                });
+                                // Optionally show a message to user
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      'Please draw a checkmark to continue',
+                                      style: GoogleFonts.poppins(),
+                                    ),
+                                    backgroundColor: const Color(0xFF6B9BD8),
+                                    duration: const Duration(seconds: 2),
+                                  ),
+                                );
+                              },
+                            );
+                          }
+                        },
+                        child: Container(
+                          height: 200,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF6B9BD8),
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                          child: Text(
-                            'Show Me How',
-                            style: GoogleFonts.poppins(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: CustomPaint(
+                              painter: DrawingPainter(_drawingPoints),
+                              size: Size.infinite,
                             ),
                           ),
                         ),
                       ),
-                    ),
-                ],
+                    const Spacer(),
+                    // Create Account button - moves up with keyboard
+                    if (isCreateAccountButtonVisible)
+                      Padding(
+                        padding: EdgeInsets.only(
+                          bottom: bottomInset > 0 ? bottomInset + 16 : 40,
+                        ),
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: () {
+                              FocusScope.of(
+                                context,
+                              ).unfocus(); // Dismiss keyboard
+                              setState(() {
+                                isCreateAccountButtonVisible = false;
+                                isDrawingCheckmark = true;
+                              });
+                              _openDraw!.trigger();
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              foregroundColor: Colors.black,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              elevation: 0,
+                            ),
+                            child: Text(
+                              'Create Account',
+                              style: GoogleFonts.poppins(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    // Show Me How button - shown on import screen
+                    if (isImportScreen)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 40),
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: ElevatedButton(
+                            onPressed: () {
+                              // Handle show me how action
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => TutorialPage(),
+                                ),
+                              );
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              foregroundColor: Colors.black,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              elevation: 0,
+                            ),
+                            child: Text(
+                              'Show Me How',
+                              style: GoogleFonts.poppins(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
               ),
             ),
-          ),
         ],
       ),
     );

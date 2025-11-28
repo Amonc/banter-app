@@ -55,14 +55,13 @@ class _SplashScreenState extends State<SplashScreen> {
     final vmi = controller.dataBind(DataBind.auto());
     final click = vmi.trigger('trigger');
 
-
     // Listen for the trigger firing (caused by your Rive "Pointer Click" listener)
     click!.addListener((bool _) {
       // Will be called each time your Rive button is clicked
       Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => CreateAccount()),
-      );    
+      );
     });
     setState(() => isInitialized = true);
 
