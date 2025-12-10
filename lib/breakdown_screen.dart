@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:rive/rive.dart';
 import 'package:banter/model/chat_analysis_response.dart';
@@ -99,9 +98,16 @@ class _BreakdownScreenState extends State<BreakdownScreen> {
   DateTime? _pressStartTime;
   static const _tapThreshold = Duration(milliseconds: 200);
 
-  // Timer for auto-advancing from breakdown_9 to breakdown_10
-  Timer? _breakdown9Timer;
+  // Red alert cycling state
+  int _currentRedAlertIndex = 1;
+  ViewModelInstanceTrigger? _nextRedAlertTrigger;
 
+  ViewModelInstanceString? _redAlertName;
+  ViewModelInstanceString? _redAlertPersonalityType;
+  ViewModelInstanceString? _redAlertDescription;
+  bool isNextPressed = true;
+
+  ViewModelInstanceBoolean? _showRedAlertImmediately;
 
   @override
   void initState() {
@@ -110,6 +116,8 @@ class _BreakdownScreenState extends State<BreakdownScreen> {
   }
 
   void _goToNext() {
+    print(_currentBreakdown);
+    isInitialized = true;
     switch (_currentBreakdown) {
       case BreakdownState.breakdown1:
         _breakdown2Trigger?.trigger();
@@ -134,10 +142,15 @@ class _BreakdownScreenState extends State<BreakdownScreen> {
         _breakdown9Trigger?.trigger();
         break;
       case BreakdownState.breakdown9:
-        // Cancel auto-advance timer since user manually navigated
-        _breakdown9Timer?.cancel();
-        // Transition to breakdown_10.riv (movie screen)
-        _loadBreakdown10File();
+        final redFlags = widget.analysisData.redFlags;
+        // If at last red alert or no red alerts, go to breakdown_10
+        if (redFlags.isEmpty || _currentRedAlertIndex >= redFlags.length - 1) {
+          _loadBreakdown10File();
+        } else {
+          // Cycle to next red alert
+
+          _nextRedAlertTrigger?.trigger();
+        }
         break;
       case BreakdownState.breakdown10:
         // Navigate to chat screen
@@ -150,6 +163,7 @@ class _BreakdownScreenState extends State<BreakdownScreen> {
   }
 
   void _goToPrevious() {
+    isNextPressed = false;
     print(_currentBreakdown);
     switch (_currentBreakdown) {
       case BreakdownState.breakdown1:
@@ -175,22 +189,35 @@ class _BreakdownScreenState extends State<BreakdownScreen> {
         _breakdown7Trigger?.trigger();
         break;
       case BreakdownState.breakdown9:
-        // Cancel auto-advance timer since user manually navigated back
-        _breakdown9Timer?.cancel();
-        _breakdown8Trigger?.trigger();
+        // If at first red alert, go back to breakdown_8
+        if (_currentRedAlertIndex <= 0) {
+          if (_currentRedAlertIndex == 0) {
+            _currentRedAlertIndex = 2;
+            print("roita $_currentRedAlertIndex");
+          }
+          _breakdown8Trigger?.trigger();
+        } else {
+          // Cycle to previous red alert - name change handled by event listener
+          _nextRedAlertTrigger?.trigger();
+        }
         break;
       case BreakdownState.breakdown10:
+        _showRedAlertImmediately?.value = true;
         // Transition back to breakdown_5_to_9.riv and show breakdown_9
         _loadBreakdown2File(goToBreakdown9: true);
+        _showRedAlertImmediately?.value = false;
         break;
     }
   }
 
   /// Extracts the first name from a full name
   /// e.g., "John Doe" -> "John", "~ Alice Smith" -> "Alice"
-  String getFirstName(String fullName) {
+  String getName(String fullName) {
     // Remove leading special characters like ~, @, etc.
-    String cleanName = fullName.trim().replaceAll(RegExp(r'^[~@#$%^&*]+\s*'), '');
+    String cleanName = fullName.trim().replaceAll(
+      RegExp(r'^[~@#$%^&*]+\s*'),
+      '',
+    );
 
     // Split by space and take the first part
     final parts = cleanName.split(' ');
@@ -239,9 +266,9 @@ class _BreakdownScreenState extends State<BreakdownScreen> {
 
     // Set values from actual analysis data
     final data = widget.analysisData;
-    typoMachine?.value = getFirstName(data.loudestMember.name);
+    typoMachine?.value = getName(data.loudestMember.name);
     mostSentCount?.value = 'SENT ${data.loudestMember.count} MESSAGES';
-    mostSenderName?.value = getFirstName(data.loudestMember.name);
+    mostSenderName?.value = getName(data.loudestMember.name);
     groupChatName?.value = data.groupChatName;
     textsPerDay?.value = data.messageStats.avgMessagesPerDay.toStringAsFixed(1);
     totalMessageCount?.value = data.messageStats.totalMessages.toString();
@@ -306,6 +333,15 @@ class _BreakdownScreenState extends State<BreakdownScreen> {
     _breakdown7Trigger = vmi.trigger('breakdown_7_enter');
     _breakdown8Trigger = vmi.trigger('breakdown_8_enter');
     _breakdown9Trigger = vmi.trigger('breakdown_9_enter');
+    _nextRedAlertTrigger = vmi.trigger('next_red_alert');
+
+    // Reset red alert cycling state - if coming back from breakdown_10, start at last red alert
+    final redFlags = widget.analysisData.redFlags;
+    if (goToBreakdown9 && redFlags.isNotEmpty) {
+      _currentRedAlertIndex = redFlags.length - 1;
+    } else {
+      _currentRedAlertIndex = 0;
+    }
 
     // Set showLastImmediately to skip to breakdown_9 when going back from breakdown_10
     final showLastImmediately = vmi.boolean('showLastImmediately');
@@ -315,7 +351,10 @@ class _BreakdownScreenState extends State<BreakdownScreen> {
 
     // Bind all the VMI strings for breakdown_2
     final typoMachine = vmi.string('typo_machine');
-    final redAlertName = vmi.string('red_alert_name');
+    _redAlertName = vmi.string('red_alert_name');
+    _redAlertPersonalityType = vmi.string('red_alert_personality_type');
+    _redAlertDescription = vmi.string('red_alert_description');
+    _showRedAlertImmediately = vmi.boolean('show_last_immediately');
     final mostRepliesName = vmi.string('most_replies_name');
     final funniestUserName = vmi.string('funniest_user_name');
     final mostWordsUserName = vmi.string('most_words_user_name');
@@ -326,28 +365,36 @@ class _BreakdownScreenState extends State<BreakdownScreen> {
 
     // Set values from actual analysis data
     final data = widget.analysisData;
-    typoMachine?.value = getFirstName(data.loudestMember.name);
-    redAlertName?.value = data.redFlags.isNotEmpty ? getFirstName(data.redFlags.first.name) : 'N/A';
-    mostRepliesName?.value = getFirstName(data.mostReplies.name);
-    funniestUserName?.value = getFirstName(data.funniestMember.name);
-    mostWordsUserName?.value = getFirstName(data.mostWords.name);
-
+    typoMachine?.value = getName(data.loudestMember.name);
+    _redAlertName?.value = redFlags.isNotEmpty
+        ? getName(redFlags[_currentRedAlertIndex].name)
+        : 'N/A';
+    _redAlertPersonalityType?.value = redFlags.isNotEmpty
+        ? redFlags[_currentRedAlertIndex].personalityType
+        : 'N/A';
+    _redAlertDescription?.value = redFlags.isNotEmpty
+        ? redFlags[_currentRedAlertIndex].description
+        : 'N/A';
+    mostRepliesName?.value = getName(data.mostReplies.name);
+    funniestUserName?.value = getName(data.funniestMember.name);
+    mostWordsUserName?.value = getName(data.mostWords.name);
+    _showRedAlertImmediately = vmi.boolean('showLastImmediately');
     // Sort top contributors by count (descending order)
     final sortedContributors = List.from(data.topContributors)
       ..sort((a, b) => b.count.compareTo(a.count));
 
     // Set top contributors (most vocal)
     if (sortedContributors.length > 3) {
-      mostVocal4th?.value = getFirstName(sortedContributors[3].name);
+      mostVocal4th?.value = getName(sortedContributors[3].name);
     }
     if (sortedContributors.length > 2) {
-      mostVocal3rd?.value = getFirstName(sortedContributors[2].name);
+      mostVocal3rd?.value = getName(sortedContributors[2].name);
     }
     if (sortedContributors.length > 1) {
-      mostVocal2nd?.value = getFirstName(sortedContributors[1].name);
+      mostVocal2nd?.value = getName(sortedContributors[1].name);
     }
     if (sortedContributors.isNotEmpty) {
-      mostVocal1st?.value = getFirstName(sortedContributors[0].name);
+      mostVocal1st?.value = getName(sortedContributors[0].name);
     }
 
     // Listen for state machine state changes
@@ -382,13 +429,31 @@ class _BreakdownScreenState extends State<BreakdownScreen> {
           }
           // Reset showLastImmediately so going back from breakdown_6 shows breakdown_5
           showLastImmediately?.value = false;
-          // Start auto-advance timer to breakdown_10 after 6 seconds
-          _breakdown9Timer?.cancel();
-          _breakdown9Timer = Timer(const Duration(seconds: 6), () {
-            if (mounted && _currentBreakdown == BreakdownState.breakdown9) {
+          break;
+        case 'change_red_alert':
+          if (isNextPressed) {
+            if (_currentRedAlertIndex < redFlags.length - 1) {
+              _currentRedAlertIndex++;
+            } else {
               _loadBreakdown10File();
             }
-          });
+          } else {
+            if (_currentRedAlertIndex > 0) {
+              _currentRedAlertIndex--;
+            } else {
+              //need to shoe movie breakdown
+              _currentBreakdown = BreakdownState.breakdown9;
+              _breakdown9Trigger?.trigger();
+            }
+          }
+
+          _redAlertName?.value = getName(redFlags[_currentRedAlertIndex].name);
+          _redAlertPersonalityType?.value =
+              redFlags[_currentRedAlertIndex].personalityType;
+          _redAlertDescription?.value =
+              redFlags[_currentRedAlertIndex].description;
+          isNextPressed = true;
+          setState(() {});
           break;
       }
     });
@@ -408,6 +473,7 @@ class _BreakdownScreenState extends State<BreakdownScreen> {
   }
 
   void _loadBreakdown10File() async {
+    _showRedAlertImmediately!.value = true;
     setState(() => isInitialized = false);
 
     // Dispose existing resources
@@ -425,10 +491,14 @@ class _BreakdownScreenState extends State<BreakdownScreen> {
     _movieLoadingTrigger = vmi.trigger('movie_loading');
     _movieTheHangoverTrigger = vmi.trigger('movie_the hangover');
     _movieTheHungerGamesTrigger = vmi.trigger('movie_the_hunger_games');
-    _movieTheDevilWearsPradaTrigger = vmi.trigger('movie_the_devil_wears_pra...');
+    _movieTheDevilWearsPradaTrigger = vmi.trigger(
+      'movie_the_devil_wears_pra...',
+    );
     _movieMeanGirlsTrigger = vmi.trigger('movie_mean_girls');
     _movieTheBreakfastClubTrigger = vmi.trigger('movie_the_breakfast_club');
-    _movieWolfOfWallStreetTrigger = vmi.trigger('movie_the_wolf_of_wall_str...');
+    _movieWolfOfWallStreetTrigger = vmi.trigger(
+      'movie_the_wolf_of_wall_str...',
+    );
     _movieMoneyballTrigger = vmi.trigger('movie_money_ball');
     _movieNapoleonDynamiteTrigger = vmi.trigger('movie_napolean_dynamite');
     _movieInsideOutTrigger = vmi.trigger('movie_inside_out');
@@ -437,7 +507,9 @@ class _BreakdownScreenState extends State<BreakdownScreen> {
     // Initialize red_alert_name string
     final redAlertName = vmi.string('red_alert_name');
     final data = widget.analysisData;
-    redAlertName?.value = data.redFlags.isNotEmpty ? getFirstName(data.redFlags.first.name) : 'N/A';
+    redAlertName?.value = data.redFlags.isNotEmpty
+        ? getName(data.redFlags.last.name)
+        : 'N/A';
 
     // Create mapping
     _movieTriggers = {
@@ -455,7 +527,7 @@ class _BreakdownScreenState extends State<BreakdownScreen> {
       'Project X': _movieProjectXTrigger,
     };
 
-    // Listen for state machine state changes
+    // // Listen for state machine state changes
     controller.stateMachine.addEventListener((event) {
       print('State changed: ${event.name}');
 
@@ -471,25 +543,23 @@ class _BreakdownScreenState extends State<BreakdownScreen> {
       _currentBreakdown = BreakdownState.breakdown10;
     });
 
-    // Trigger movie_loading first
+    // // Trigger movie_loading first
     _movieLoadingTrigger?.trigger();
 
-    // Wait 5 seconds then trigger the appropriate movie based on analysis data
-    await Future.delayed(const Duration(seconds: 5));
+    // // Wait 5 seconds then trigger the appropriate movie based on analysis data
 
-    if (mounted) {
-      _triggerMovieFromResponse();
-    }
+    // if (mounted) {
+    //   _triggerMovieFromResponse();
+    // }
 
     // Auto-navigate to chat screen after 6 more seconds (11 seconds total)
-    await Future.delayed(const Duration(seconds: 6));
 
-    if (mounted) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const ChatScreen()),
-      );
-    }
+    // if (mounted) {
+    //   Navigator.push(
+    //     context,
+    //     MaterialPageRoute(builder: (context) => const ChatScreen()),
+    //   );
+    // }
   }
 
   void _triggerMovieFromResponse() {
@@ -499,13 +569,64 @@ class _BreakdownScreenState extends State<BreakdownScreen> {
     }
   }
 
-
   @override
   void dispose() {
-    _breakdown9Timer?.cancel();
     file.dispose();
     controller.dispose();
     super.dispose();
+  }
+
+  /// Calculate total number of dots
+  /// Formula: 10 breakdowns + (redAlerts - 1) for additional red alerts
+  int _getTotalDots() {
+    final redFlagsCount = widget.analysisData.redFlags.length;
+    return 10 + (redFlagsCount > 0 ? redFlagsCount - 1 : 0);
+  }
+
+  /// Get current dot index based on breakdown state
+  int _getCurrentDotIndex() {
+    switch (_currentBreakdown) {
+      case BreakdownState.breakdown1:
+        return 0;
+      case BreakdownState.breakdown2:
+        return 1;
+      case BreakdownState.breakdown4:
+        return 2;
+      case BreakdownState.breakdown5:
+        return 3;
+      case BreakdownState.breakdown6:
+        return 4;
+      case BreakdownState.breakdown7:
+        return 5;
+      case BreakdownState.breakdown8:
+        return 6;
+      case BreakdownState.breakdown9:
+        // Each red alert gets its own index starting at 7
+        return 7 + _currentRedAlertIndex;
+      case BreakdownState.breakdown10:
+        return _getTotalDots() - 1;
+    }
+  }
+
+  Widget _buildDotIndicator() {
+    final totalDots = _getTotalDots();
+    final currentIndex = _getCurrentDotIndex();
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: List.generate(totalDots, (index) {
+        final isActive = index == currentIndex;
+        return Container(
+          width: 6,
+          height: 6,
+          margin: const EdgeInsets.symmetric(horizontal: 3),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: isActive ? Colors.white : Colors.white.withOpacity(0.4),
+          ),
+        );
+      }),
+    );
   }
 
   @override
@@ -519,40 +640,69 @@ class _BreakdownScreenState extends State<BreakdownScreen> {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      body: Listener(
-        onPointerDown: (_) {
-          // Track when press started
-          _pressStartTime = DateTime.now();
-          // Pause animation when touching the screen
-          controller.pauseAnimation();
-        },
-        onPointerUp: (details) {
-          // Resume animation when releasing
-          controller.resumeAnimation();
+      body: Stack(
+        children: [
+          Listener(
+            onPointerDown: (_) {
+              // Track when press started
+              _pressStartTime = DateTime.now();
+              // Pause animation when touching the screen
+              controller.pauseAnimation();
+            },
+            onPointerUp: (details) {
+              // Resume animation when releasing
+              controller.resumeAnimation();
 
-          // Only trigger navigation if it was a quick tap, not a hold
-          final pressDuration = DateTime.now().difference(_pressStartTime ?? DateTime.now());
-          if (pressDuration < _tapThreshold) {
-            final screenWidth = MediaQuery.of(context).size.width;
-            final tapPosition = details.position.dx;
+              // Only trigger navigation if it was a quick tap, not a hold
+              final pressDuration = DateTime.now().difference(
+                _pressStartTime ?? DateTime.now(),
+              );
+              if (pressDuration < _tapThreshold) {
+                final screenWidth = MediaQuery.of(context).size.width;
+                final tapPosition = details.position.dx;
 
-            // Instagram-style tap areas:
-            // Left 1/3 of screen: go previous
-            // Right 2/3 of screen: go next
-            if (tapPosition < screenWidth / 3) {
-              _goToPrevious();
-            } else {
-              _goToNext();
-            }
-          }
-          _pressStartTime = null;
-        },
-        onPointerCancel: (_) {
-          // Resume animation if touch is cancelled
-          controller.resumeAnimation();
-          _pressStartTime = null;
-        },
-        child: RiveWidget(controller: controller, fit: Fit.fitWidth),
+                // Instagram-style tap areas:
+                // Left 1/3 of screen: go previous
+                // Right 2/3 of screen: go next
+                if (tapPosition < screenWidth / 3) {
+                  _goToPrevious();
+                } else {
+                  _goToNext();
+                }
+              }
+              _pressStartTime = null;
+            },
+            onPointerCancel: (_) {
+              // Resume animation if touch is cancelled
+              controller.resumeAnimation();
+              _pressStartTime = null;
+            },
+            child: RiveWidget(controller: controller, fit: Fit.fitWidth),
+          ),
+          // Dot indicator - animates to bottom for breakdown4 and breakdown5
+          Builder(
+            builder: (context) {
+              final isBottom = _currentBreakdown == BreakdownState.breakdown4 ||
+                  _currentBreakdown == BreakdownState.breakdown5;
+              final screenHeight = MediaQuery.of(context).size.height;
+              final topPadding = MediaQuery.of(context).padding.top;
+              final bottomPadding = MediaQuery.of(context).padding.bottom;
+
+              final topPosition = isBottom
+                  ? screenHeight - bottomPadding - 48
+                  : topPadding + 16;
+
+              return AnimatedPositioned(
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeInOut,
+                top: topPosition,
+                left: 0,
+                right: 0,
+                child: Center(child: _buildDotIndicator()),
+              );
+            },
+          ),
+        ],
       ),
     );
   }
