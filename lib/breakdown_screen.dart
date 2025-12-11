@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:rive/rive.dart';
 import 'package:banter/model/chat_analysis_response.dart';
@@ -109,6 +111,10 @@ class _BreakdownScreenState extends State<BreakdownScreen> {
 
   ViewModelInstanceBoolean? _showRedAlertImmediately;
 
+  // Track if movie is showing (vs loading) in breakdown_10
+  bool _isMovieShowing = false;
+  Timer? _movieAutoTriggerTimer;
+
   @override
   void initState() {
     super.initState();
@@ -153,11 +159,19 @@ class _BreakdownScreenState extends State<BreakdownScreen> {
         }
         break;
       case BreakdownState.breakdown10:
-        // Navigate to chat screen
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const ChatScreen()),
-        );
+        // Cancel auto-trigger timer on manual navigation
+        _movieAutoTriggerTimer?.cancel();
+        if (!_isMovieShowing) {
+          // First tap: trigger movie by name
+          _triggerMovieFromResponse();
+          _isMovieShowing = true;
+        } else {
+          // Second tap: navigate to chat screen
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const ChatScreen()),
+          );
+        }
         break;
     }
   }
@@ -202,6 +216,8 @@ class _BreakdownScreenState extends State<BreakdownScreen> {
         }
         break;
       case BreakdownState.breakdown10:
+        // Cancel auto-trigger timer on manual navigation
+        _movieAutoTriggerTimer?.cancel();
         _showRedAlertImmediately?.value = true;
         // Transition back to breakdown_5_to_9.riv and show breakdown_9
         _loadBreakdown2File(goToBreakdown9: true);
@@ -439,7 +455,11 @@ class _BreakdownScreenState extends State<BreakdownScreen> {
             }
           } else {
             if (_currentRedAlertIndex > 0) {
-              _currentRedAlertIndex--;
+              if (_showRedAlertImmediately!.value == false) {
+                _currentRedAlertIndex--;
+              }
+
+              _showRedAlertImmediately!.value = false;
             } else {
               //need to shoe movie breakdown
               _currentBreakdown = BreakdownState.breakdown9;
@@ -474,6 +494,8 @@ class _BreakdownScreenState extends State<BreakdownScreen> {
 
   void _loadBreakdown10File() async {
     _showRedAlertImmediately!.value = true;
+    _isMovieShowing = false; // Reset immediately before async operations
+    _movieAutoTriggerTimer?.cancel(); // Cancel any existing timer
     setState(() => isInitialized = false);
 
     // Dispose existing resources
@@ -492,24 +514,29 @@ class _BreakdownScreenState extends State<BreakdownScreen> {
     _movieTheHangoverTrigger = vmi.trigger('movie_the hangover');
     _movieTheHungerGamesTrigger = vmi.trigger('movie_the_hunger_games');
     _movieTheDevilWearsPradaTrigger = vmi.trigger(
-      'movie_the_devil_wears_pra...',
+      'movie_the_devil_wears_prada',
     );
     _movieMeanGirlsTrigger = vmi.trigger('movie_mean_girls');
     _movieTheBreakfastClubTrigger = vmi.trigger('movie_the_breakfast_club');
     _movieWolfOfWallStreetTrigger = vmi.trigger(
-      'movie_the_wolf_of_wall_str...',
+      'movie_the_wolf_of_wall_street',
     );
     _movieMoneyballTrigger = vmi.trigger('movie_money_ball');
     _movieNapoleonDynamiteTrigger = vmi.trigger('movie_napolean_dynamite');
     _movieInsideOutTrigger = vmi.trigger('movie_inside_out');
     _movieProjectXTrigger = vmi.trigger('movie_project_x');
 
-    // Initialize red_alert_name string
+    // Initialize red_alert strings for the last red flag
     final redAlertName = vmi.string('red_alert_name');
+    final redAlertPersonalityType = vmi.string('red_alert_personality_type');
+    final redAlertDescription = vmi.string('red_alert_description');
     final data = widget.analysisData;
-    redAlertName?.value = data.redFlags.isNotEmpty
-        ? getName(data.redFlags.last.name)
+    final lastRedFlag = data.redFlags.isNotEmpty ? data.redFlags.last : null;
+    redAlertName?.value = lastRedFlag != null
+        ? getName(lastRedFlag.name)
         : 'N/A';
+    redAlertPersonalityType?.value = lastRedFlag?.personalityType ?? 'N/A';
+    redAlertDescription?.value = lastRedFlag?.description ?? 'N/A';
 
     // Create mapping
     _movieTriggers = {
@@ -543,14 +570,16 @@ class _BreakdownScreenState extends State<BreakdownScreen> {
       _currentBreakdown = BreakdownState.breakdown10;
     });
 
-    // // Trigger movie_loading first
+    // Trigger movie_loading first (movie will be triggered on next tap or after 5 seconds)
     _movieLoadingTrigger?.trigger();
 
-    // // Wait 5 seconds then trigger the appropriate movie based on analysis data
-
-    // if (mounted) {
-    //   _triggerMovieFromResponse();
-    // }
+    // Auto-trigger movie after 5 seconds
+    _movieAutoTriggerTimer = Timer(const Duration(seconds: 5), () {
+      if (mounted && !_isMovieShowing) {
+        _triggerMovieFromResponse();
+        _isMovieShowing = true;
+      }
+    });
 
     // Auto-navigate to chat screen after 6 more seconds (11 seconds total)
 
@@ -563,24 +592,35 @@ class _BreakdownScreenState extends State<BreakdownScreen> {
   }
 
   void _triggerMovieFromResponse() {
-    final movieName = widget.analysisData.movieMatch.movie;
-    if (_movieTriggers.containsKey(movieName)) {
-      _movieTriggers[movieName]?.trigger();
+    final movieMatch = widget.analysisData.movieMatch;
+    print('Movie Data:');
+    print('  Movie: ${movieMatch.movie}');
+    print('  Reason: ${movieMatch.reason}');
+    print('  Available triggers: ${_movieTriggers.keys.toList()}');
+    print('  Trigger exists: ${_movieTriggers.containsKey(movieMatch.movie)}');
+    print('  Trigger value: ${_movieTriggers[movieMatch.movie]}');
+    print('  Devil Wears Prada trigger: $_movieTheDevilWearsPradaTrigger');
+
+    if (_movieTriggers.containsKey(movieMatch.movie)) {
+      print('  Triggering movie: ${movieMatch.movie}');
+      _movieTriggers[movieMatch.movie]?.trigger();
+      print('  Trigger fired!');
     }
   }
 
   @override
   void dispose() {
+    _movieAutoTriggerTimer?.cancel();
     file.dispose();
     controller.dispose();
     super.dispose();
   }
 
   /// Calculate total number of dots
-  /// Formula: 10 breakdowns + (redAlerts - 1) for additional red alerts
+  /// Formula: 9 breakdowns + (redAlerts - 1) for additional red alerts
   int _getTotalDots() {
     final redFlagsCount = widget.analysisData.redFlags.length;
-    return 10 + (redFlagsCount > 0 ? redFlagsCount - 1 : 0);
+    return 9 + (redFlagsCount > 0 ? redFlagsCount - 1 : 0);
   }
 
   /// Get current dot index based on breakdown state
@@ -682,7 +722,8 @@ class _BreakdownScreenState extends State<BreakdownScreen> {
           // Dot indicator - animates to bottom for breakdown4 and breakdown5
           Builder(
             builder: (context) {
-              final isBottom = _currentBreakdown == BreakdownState.breakdown4 ||
+              final isBottom =
+                  _currentBreakdown == BreakdownState.breakdown4 ||
                   _currentBreakdown == BreakdownState.breakdown5;
               final screenHeight = MediaQuery.of(context).size.height;
               final topPadding = MediaQuery.of(context).padding.top;

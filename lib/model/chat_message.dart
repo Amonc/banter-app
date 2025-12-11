@@ -2,11 +2,13 @@ class ChatMessage {
   final String content;
   final bool isUser;
   final DateTime timestamp;
+  final ChatResult? chatResult; // For AI responses with structured data
 
   ChatMessage({
     required this.content,
     required this.isUser,
     required this.timestamp,
+    this.chatResult,
   });
 }
 
@@ -35,8 +37,40 @@ class ChatRequest {
   }
 }
 
+class ChatResult {
+  final String answer;
+  final List<String> insights;
+  final List<String> mentionedParticipants;
+  final List<String> followUpQuestions;
+
+  ChatResult({
+    required this.answer,
+    required this.insights,
+    required this.mentionedParticipants,
+    required this.followUpQuestions,
+  });
+
+  factory ChatResult.fromJson(Map<String, dynamic> json) {
+    return ChatResult(
+      answer: json['answer'] as String? ?? '',
+      insights: (json['insights'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          [],
+      mentionedParticipants: (json['mentioned_participants'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          [],
+      followUpQuestions: (json['follow_up_questions'] as List<dynamic>?)
+              ?.map((e) => e as String)
+              .toList() ??
+          [],
+    );
+  }
+}
+
 class ChatResponse {
-  final String result;
+  final ChatResult result;
   final String sessionId;
   final String groupChatName;
   final double responseTimeSeconds;
@@ -52,7 +86,7 @@ class ChatResponse {
 
   factory ChatResponse.fromJson(Map<String, dynamic> json) {
     return ChatResponse(
-      result: json['result'] as String,
+      result: ChatResult.fromJson(json['result'] as Map<String, dynamic>),
       sessionId: json['session_id'] as String,
       groupChatName: json['group_chat_name'] as String,
       responseTimeSeconds: (json['response_time_seconds'] as num).toDouble(),

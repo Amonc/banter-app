@@ -22,6 +22,14 @@ class _ChatScreenState extends State<ChatScreen> {
   File? _chatFile;
   bool _isInitializing = true;
 
+  static const List<String> _presetQuestions = [
+    'When did the chat absolutely explode with messages, and why?',
+    'Who are the two people who clearly have a side-chat going, and what\'s the secret purpose of that side-chat?',
+    'Who is the one person whose approval everyone is quietly chasing?',
+    'What is the one thing everyone quietly resents about someone—but it\'s "not worth bringing up"?',
+    'What argument seemed small on the surface but was actually years of tension boiling over?',
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -96,6 +104,93 @@ class _ChatScreenState extends State<ChatScreen> {
     }
   }
 
+  void _sendPresetQuestion(String question) {
+    _messageController.text = question;
+    _sendMessage();
+  }
+
+  void _showHintsBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: Colors.purple.shade500,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Try asking...',
+              style: GoogleFonts.inter(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 16),
+            ...List.generate(_presetQuestions.length, (index) {
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 12),
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: _isLoading
+                        ? null
+                        : () {
+                            Navigator.pop(context);
+                            _sendPresetQuestion(_presetQuestions[index]);
+                          },
+                    borderRadius: BorderRadius.circular(16),
+                    splashColor: Colors.white.withValues(alpha: 0.1),
+                    highlightColor: Colors.white.withValues(alpha: 0.05),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.3),
+                          width: 1,
+                        ),
+                      ),
+                      child: Text(
+                        _presetQuestions[index],
+                        style: GoogleFonts.inter(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.white,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            }),
+            SizedBox(height: MediaQuery.of(context).padding.bottom),
+          ],
+        ),
+      ),
+    );
+  }
+
   Future<void> _sendMessage() async {
     final message = _messageController.text.trim();
     if (message.isEmpty || _isLoading || _chatFile == null) return;
@@ -124,9 +219,10 @@ class _ChatScreenState extends State<ChatScreen> {
         _sessionId ??= response.sessionId;
 
         _messages.add(ChatMessage(
-          content: response.result,
+          content: response.result.answer,
           isUser: false,
           timestamp: DateTime.now(),
+          chatResult: response.result,
         ));
         _isLoading = false;
       });
@@ -220,6 +316,16 @@ class _ChatScreenState extends State<ChatScreen> {
           ),
         ),
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(
+              Icons.lightbulb_outline,
+              color: Colors.white,
+            ),
+            onPressed: _showHintsBottomSheet,
+            tooltip: 'Suggestions',
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -237,36 +343,89 @@ class _ChatScreenState extends State<ChatScreen> {
                         end: Alignment.bottomCenter,
                       ),
                     ),
-                    child: Center(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 40),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              'Anything\nelse?',
-                              textAlign: TextAlign.center,
-                              style: GoogleFonts.inter(
-                                fontSize: 64,
-                                fontWeight: FontWeight.w900,
-                                color: Colors.white,
-                                height: 1.1,
+                    child: Column(
+                      children: [
+                        const Spacer(),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 40),
+                          child: Column(
+                            children: [
+                              Text(
+                                'Anything\nelse?',
+                                textAlign: TextAlign.center,
+                                style: GoogleFonts.inter(
+                                  fontSize: 64,
+                                  fontWeight: FontWeight.w900,
+                                  color: Colors.white,
+                                  height: 1.1,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 24),
-                            Text(
-                              'Ask Banter for any other insights you\'re curious about... We know it all 👀',
-                              textAlign: TextAlign.center,
-                              style: GoogleFonts.inter(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500,
-                                color: Colors.white,
-                                height: 1.4,
+                              const SizedBox(height: 24),
+                              Text(
+                                'Ask Banter for any other insights you\'re curious about... We know it all 👀',
+                                textAlign: TextAlign.center,
+                                style: GoogleFonts.inter(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.white,
+                                  height: 1.4,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
+                        const Spacer(),
+                        // Preset questions
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 24),
+                          child: SizedBox(
+                            height: 120,
+                            child: ListView.builder(
+                              scrollDirection: Axis.horizontal,
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              itemCount: _presetQuestions.length,
+                              itemBuilder: (context, index) {
+                                return Padding(
+                                  padding: const EdgeInsets.only(right: 12),
+                                  child: Material(
+                                    color: Colors.transparent,
+                                    child: InkWell(
+                                      onTap: _isLoading
+                                          ? null
+                                          : () => _sendPresetQuestion(
+                                              _presetQuestions[index]),
+                                      borderRadius: BorderRadius.circular(16),
+                                      splashColor: Colors.white.withValues(alpha: 0.1),
+                                      highlightColor: Colors.white.withValues(alpha: 0.05),
+                                      child: Container(
+                                        width: 280,
+                                        padding: const EdgeInsets.all(16),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white.withValues(alpha: 0.15),
+                                          borderRadius: BorderRadius.circular(16),
+                                          border: Border.all(
+                                            color: Colors.white.withValues(alpha: 0.3),
+                                            width: 1,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          _presetQuestions[index],
+                                          style: GoogleFonts.inter(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w500,
+                                            color: Colors.white,
+                                            height: 1.4,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   )
                 : Container(
@@ -286,7 +445,10 @@ class _ChatScreenState extends State<ChatScreen> {
                       itemCount: _messages.length,
                       itemBuilder: (context, index) {
                         final message = _messages[index];
-                        return _MessageBubble(message: message);
+                        return _MessageBubble(
+                          message: message,
+                          onFollowUpTap: _isLoading ? null : _sendPresetQuestion,
+                        );
                       },
                     ),
                   ),
@@ -425,11 +587,20 @@ class _ChatScreenState extends State<ChatScreen> {
 
 class _MessageBubble extends StatelessWidget {
   final ChatMessage message;
+  final void Function(String)? onFollowUpTap;
 
-  const _MessageBubble({required this.message});
+  const _MessageBubble({
+    required this.message,
+    this.onFollowUpTap,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final chatResult = message.chatResult;
+    final hasInsights = chatResult != null && chatResult.insights.isNotEmpty;
+    final hasFollowUps =
+        chatResult != null && chatResult.followUpQuestions.isNotEmpty;
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Row(
@@ -442,52 +613,176 @@ class _MessageBubble extends StatelessWidget {
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [
-                    Color(0xFF1E3A8A),
-                    Color(0xFF2563EB),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
+                color: const Color(0xFFE9B8F0),
                 borderRadius: BorderRadius.circular(18),
               ),
-              child: const Icon(
-                Icons.smart_toy,
-                color: Colors.white,
-                size: 20,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(18),
+                child: Image.asset(
+                  'assets/icon.png',
+                  fit: BoxFit.cover,
+                ),
               ),
             ),
             const SizedBox(width: 8),
           ],
           Flexible(
-            child: Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 12,
-              ),
-              decoration: BoxDecoration(
-                gradient: message.isUser
-                    ? null
-                    : const LinearGradient(
-                        colors: [
-                          Color(0xFF1E3A8A),
-                          Color(0xFF2563EB),
-                        ],
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                      ),
-                color: message.isUser ? Colors.white : null,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                message.content,
-                style: GoogleFonts.inter(
-                  fontSize: 15,
-                  color: message.isUser ? Colors.black87 : Colors.white,
-                  height: 1.4,
+            child: Column(
+              crossAxisAlignment: message.isUser
+                  ? CrossAxisAlignment.end
+                  : CrossAxisAlignment.start,
+              children: [
+                // Main message bubble
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
+                  decoration: BoxDecoration(
+                    gradient: message.isUser
+                        ? null
+                        : const LinearGradient(
+                            colors: [
+                              Color(0xFF1E3A8A),
+                              Color(0xFF2563EB),
+                            ],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                          ),
+                    color: message.isUser ? Colors.white : null,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    message.content,
+                    style: GoogleFonts.inter(
+                      fontSize: 15,
+                      color: message.isUser ? Colors.black87 : Colors.white,
+                      height: 1.4,
+                    ),
+                  ),
                 ),
-              ),
+
+                // Insights section
+                if (hasInsights) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.2),
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.insights,
+                              color: Colors.amber,
+                              size: 16,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Key Insights',
+                              style: GoogleFonts.inter(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        ...chatResult!.insights.map(
+                          (insight) => Padding(
+                            padding: const EdgeInsets.only(bottom: 4),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '•  ',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 13,
+                                    color: Colors.white.withValues(alpha: 0.9),
+                                  ),
+                                ),
+                                Expanded(
+                                  child: Text(
+                                    insight,
+                                    style: GoogleFonts.inter(
+                                      fontSize: 13,
+                                      color: Colors.white.withValues(alpha: 0.9),
+                                      height: 1.3,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+
+                // Follow-up questions
+                if (hasFollowUps) ...[
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: chatResult!.followUpQuestions.map((question) {
+                      return Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: onFollowUpTap != null
+                              ? () => onFollowUpTap!(question)
+                              : null,
+                          borderRadius: BorderRadius.circular(16),
+                          splashColor: Colors.white.withValues(alpha: 0.1),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.3),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.touch_app,
+                                  size: 14,
+                                  color: Colors.white.withValues(alpha: 0.7),
+                                ),
+                                const SizedBox(width: 6),
+                                Flexible(
+                                  child: Text(
+                                    question,
+                                    style: GoogleFonts.inter(
+                                      fontSize: 12,
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ],
             ),
           ),
           if (message.isUser) ...[

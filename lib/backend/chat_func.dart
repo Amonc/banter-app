@@ -1,12 +1,15 @@
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter/foundation.dart';
 import 'dart:convert';
 import 'package:banter/model/chat_analysis_response.dart';
 import 'package:banter/model/chat_message.dart';
 
 class ChatAnalyzer {
-  static String get _baseUrl => dotenv.env['API_BASE_URL'] ?? '';
+  static String get _baseUrl => kDebugMode
+      ? dotenv.env['LOCAL_API_BASE_URL'] ?? ''
+      : dotenv.env['API_BASE_URL'] ?? '';
   static String get _apiKey => dotenv.env['API_KEY'] ?? '';
 
   /// Analyzes a chat file using the backend API

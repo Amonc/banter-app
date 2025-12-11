@@ -1,6 +1,6 @@
 import 'package:banter/turorial_page.dart';
 import 'package:flutter/material.dart';
-import 'package:rive/rive.dart';
+import 'package:rive/rive.dart' hide Animation;
 import 'package:country_code_picker/country_code_picker.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -11,7 +11,8 @@ class CreateAccount extends StatefulWidget {
   State<CreateAccount> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<CreateAccount> {
+class _SplashScreenState extends State<CreateAccount>
+    with SingleTickerProviderStateMixin {
   late File file;
   late RiveWidgetController controller;
   bool isInitialized = false;
@@ -23,6 +24,10 @@ class _SplashScreenState extends State<CreateAccount> {
   bool isShowingIntro = true;
   final TextEditingController _phoneController = TextEditingController();
   final List<Offset> _drawingPoints = [];
+
+  // Fade animation for content
+  late AnimationController _fadeController;
+  late Animation<double> _fadeAnimation;
 
   /// Checks if the drawn pattern matches a checkmark shape
   /// Returns a confidence score between 0.0 and 1.0
@@ -139,6 +144,17 @@ class _SplashScreenState extends State<CreateAccount> {
   @override
   void initState() {
     super.initState();
+
+    // Initialize fade animation
+    _fadeController = AnimationController(
+      duration: const Duration(milliseconds: 500),
+      vsync: this,
+    );
+    _fadeAnimation = CurvedAnimation(
+      parent: _fadeController,
+      curve: Curves.easeIn,
+    );
+
     initRive();
   }
 
@@ -154,7 +170,7 @@ class _SplashScreenState extends State<CreateAccount> {
 
     setState(() => isInitialized = true);
 
-    // Let the intro animation play, then trigger draw state
+    // Let the intro animation play, then trigger draw state with fade
     Future.delayed(const Duration(seconds: 2), () {
       if (mounted) {
         _openDraw!.trigger();
@@ -162,20 +178,14 @@ class _SplashScreenState extends State<CreateAccount> {
           isShowingIntro = false;
           isDrawingCheckmark = true;
         });
+        _fadeController.forward();
       }
     });
-
-    // controller.advance(0);
-    // await Future.delayed(Duration(seconds: 2));
-    // controller = RiveWidgetController(
-    //   file,
-    //   stateMachineSelector: StateMachineSelector.byName("State Machine"),
-    // );
-    // setState(() {});
   }
 
   @override
   void dispose() {
+    _fadeController.dispose();
     _phoneController.dispose();
     file.dispose();
     controller.dispose();
@@ -198,265 +208,291 @@ class _SplashScreenState extends State<CreateAccount> {
       backgroundColor: const Color(0xFF7BA7E1),
       body: Stack(
         children: [
+          // Background color fallback
+          Positioned.fill(
+            child: Container(color: const Color(0xFF7BA7E1)),
+          ),
           // Rive animation in the background (stays fixed)
           Positioned.fill(
             child: RiveWidget(controller: controller, fit: Fit.fitWidth),
           ),
           // Content overlay - hidden during intro animation
           if (!isShowingIntro)
-            SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 60),
-                    // Title text - changes based on state
-                    Text(
-                      isImportScreen
-                          ? "Let's Import\nYour Group Chat"
-                          : "Your Privacy\nMatters.",
-                      style: GoogleFonts.poppins(
-                        fontSize: 30,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                        height: 1.1,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    // Subtitle text - changes based on state
-                    Text(
-                      isImportScreen
-                          ? "We support WhatsApp only."
-                          : "If you love privacy & security, please\ndraw a checkmark here:",
-                      style: GoogleFonts.poppins(
-                        fontSize: 14,
-                        color: Colors.white,
-                        height: 1.4,
-                      ),
-                    ),
-                    const SizedBox(height: 32),
-                    // Phone input field - only shown initially
-                    if (isCreateAccountButtonVisible)
-                      Container(
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF6B9BD8),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        child: Row(
-                          children: [
-                            // Country code picker
-                            CountryCodePicker(
-                              onChanged: (countryCode) {
-                                print(countryCode);
-                              },
-                              initialSelection: 'US',
-                              favorite: const ['+1', 'US'],
-                              showCountryOnly: false,
-                              showOnlyCountryWhenClosed: false,
-                              alignLeft: false,
-                              padding: EdgeInsets.zero,
-                              textStyle: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500,
-                              ),
-                              dialogTextStyle: const TextStyle(
-                                color: Colors.black,
-                              ),
-                              flagWidth: 28,
-                              backgroundColor: const Color(0xFF6B9BD8),
-                              dialogBackgroundColor: Colors.white,
-                              barrierColor: Colors.black54,
-                            ),
-                            Expanded(
-                              child: TextField(
-                                controller: _phoneController,
-                                keyboardType: TextInputType.phone,
-                                style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                ),
-                                decoration: const InputDecoration(
-                                  border: InputBorder.none,
-                                  hintText: '(650) 213-7390',
-                                  hintStyle: TextStyle(
-                                    color: Color(0xFFB8D4F0),
-                                  ),
-                                  contentPadding: EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            IconButton(
-                              icon: const Icon(
-                                Icons.cancel,
-                                color: Color(0xFFB8D4F0),
-                                size: 20,
-                              ),
-                              onPressed: () {
-                                _phoneController.clear();
-                              },
-                            ),
-                          ],
+            FadeTransition(
+              opacity: _fadeAnimation,
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 60),
+                      // Title text - changes based on state
+                      Text(
+                        isImportScreen
+                            ? "Let's Import\nYour Group Chat"
+                            : "Your Privacy\nMatters.",
+                        style: GoogleFonts.poppins(
+                          fontSize: 30,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          height: 1.1,
                         ),
                       ),
-                    // Drawing area - shown after create account button click
-                    if (isDrawingCheckmark && !isImportScreen)
-                      GestureDetector(
-                        onPanStart: (details) {
-                          setState(() {
-                            _drawingPoints.add(details.localPosition);
-                          });
-                        },
-                        onPanUpdate: (details) {
-                          setState(() {
-                            _drawingPoints.add(details.localPosition);
-                          });
-                        },
-                        onPanEnd: (details) {
-                          setState(() {
-                            _drawingPoints.add(Offset.infinite);
-                          });
-
-                          // Check if the drawing matches a checkmark
-                          final matchScore = checkCheckmarkMatch(
-                            _drawingPoints,
-                          );
-                          debugPrint('Checkmark match score: $matchScore');
-
-                          // Require at least 60% match to proceed
-                          if (matchScore >= 0.6) {
-                            // Trigger import animation after successful checkmark
-                            Future.delayed(
-                              const Duration(milliseconds: 500),
-                              () {
-                                if (!mounted) return;
-                                _openImport!.trigger();
-                                setState(() {
-                                  isImportScreen = true;
-                                });
-                              },
-                            );
-                          } else {
-                            // Clear the drawing and let user try again
-                            Future.delayed(
-                              const Duration(milliseconds: 500),
-                              () {
-                                if (!mounted) return;
-                                setState(() {
-                                  _drawingPoints.clear();
-                                });
-                                // Optionally show a message to user
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      'Please draw a checkmark to continue',
-                                      style: GoogleFonts.poppins(),
-                                    ),
-                                    backgroundColor: const Color(0xFF6B9BD8),
-                                    duration: const Duration(seconds: 2),
-                                  ),
-                                );
-                              },
-                            );
-                          }
-                        },
-                        child: Container(
-                          height: 200,
+                      const SizedBox(height: 16),
+                      // Subtitle text - changes based on state
+                      Text(
+                        isImportScreen
+                            ? "We support WhatsApp only."
+                            : "We prioritize your privacy. Nothing is stored, uploaded, or saved. All data and insights vanish the moment you close the app.\n\nDraw a checkmark to continue:",
+                        style: GoogleFonts.poppins(
+                          fontSize: 14,
+                          color: Colors.white,
+                          height: 1.4,
+                        ),
+                      ),
+                      const SizedBox(height: 48),
+                      // Phone input field - only shown initially
+                      if (isCreateAccountButtonVisible)
+                        Container(
                           decoration: BoxDecoration(
                             color: const Color(0xFF6B9BD8),
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: CustomPaint(
-                              painter: DrawingPainter(_drawingPoints),
-                              size: Size.infinite,
-                            ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 4,
                           ),
-                        ),
-                      ),
-                    const Spacer(),
-                    // Create Account button - moves up with keyboard
-                    if (isCreateAccountButtonVisible)
-                      Padding(
-                        padding: EdgeInsets.only(
-                          bottom: bottomInset > 0 ? bottomInset + 16 : 40,
-                        ),
-                        child: SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: () {
-                              FocusScope.of(
-                                context,
-                              ).unfocus(); // Dismiss keyboard
-                              setState(() {
-                                isCreateAccountButtonVisible = false;
-                                isDrawingCheckmark = true;
-                              });
-                              _openDraw!.trigger();
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.white,
-                              foregroundColor: Colors.black,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              elevation: 0,
-                            ),
-                            child: Text(
-                              'Create Account',
-                              style: GoogleFonts.poppins(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    // Show Me How button - shown on import screen
-                    if (isImportScreen)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 40),
-                        child: SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: () {
-                              // Handle show me how action
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => TutorialPage(),
+                          child: Row(
+                            children: [
+                              // Country code picker
+                              CountryCodePicker(
+                                onChanged: (countryCode) {
+                                  print(countryCode);
+                                },
+                                initialSelection: 'US',
+                                favorite: const ['+1', 'US'],
+                                showCountryOnly: false,
+                                showOnlyCountryWhenClosed: false,
+                                alignLeft: false,
+                                padding: EdgeInsets.zero,
+                                textStyle: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
                                 ),
-                              );
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.white,
-                              foregroundColor: Colors.black,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
+                                dialogTextStyle: const TextStyle(
+                                  color: Colors.black,
+                                ),
+                                flagWidth: 28,
+                                backgroundColor: const Color(0xFF6B9BD8),
+                                dialogBackgroundColor: Colors.white,
+                                barrierColor: Colors.black54,
                               ),
-                              elevation: 0,
+                              Expanded(
+                                child: TextField(
+                                  controller: _phoneController,
+                                  keyboardType: TextInputType.phone,
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 16,
+                                  ),
+                                  decoration: const InputDecoration(
+                                    border: InputBorder.none,
+                                    hintText: '(650) 213-7390',
+                                    hintStyle: TextStyle(
+                                      color: Color(0xFFB8D4F0),
+                                    ),
+                                    contentPadding: EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              IconButton(
+                                icon: const Icon(
+                                  Icons.cancel,
+                                  color: Color(0xFFB8D4F0),
+                                  size: 20,
+                                ),
+                                onPressed: () {
+                                  _phoneController.clear();
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      // Drawing area - shown after create account button click
+                      if (isDrawingCheckmark && !isImportScreen)
+                        GestureDetector(
+                          onPanStart: (details) {
+                            setState(() {
+                              _drawingPoints.add(details.localPosition);
+                            });
+                          },
+                          onPanUpdate: (details) {
+                            setState(() {
+                              _drawingPoints.add(details.localPosition);
+                            });
+                          },
+                          onPanEnd: (details) {
+                            setState(() {
+                              _drawingPoints.add(Offset.infinite);
+                            });
+
+                            // Check if the drawing matches a checkmark
+                            final matchScore = checkCheckmarkMatch(
+                              _drawingPoints,
+                            );
+                            debugPrint('Checkmark match score: $matchScore');
+
+                            // Require at least 60% match to proceed
+                            if (matchScore >= 0.6) {
+                              // Trigger import animation after successful checkmark
+                              Future.delayed(
+                                const Duration(milliseconds: 500),
+                                () {
+                                  if (!mounted) return;
+                                  _openImport!.trigger();
+                                  setState(() {
+                                    isImportScreen = true;
+                                  });
+                                },
+                              );
+                            } else {
+                              // Clear the drawing and let user try again
+                              Future.delayed(
+                                const Duration(milliseconds: 500),
+                                () {
+                                  if (!mounted) return;
+                                  setState(() {
+                                    _drawingPoints.clear();
+                                  });
+                                  // Optionally show a message to user
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        'Please draw a checkmark to continue',
+                                        style: GoogleFonts.poppins(),
+                                      ),
+                                      backgroundColor: const Color(0xFF6B9BD8),
+                                      duration: const Duration(seconds: 2),
+                                    ),
+                                  );
+                                },
+                              );
+                            }
+                          },
+                          child: Container(
+                            height: 200,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF6B9BD8),
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                            child: Text(
-                              'Show Me How',
-                              style: GoogleFonts.poppins(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: CustomPaint(
+                                painter: DrawingPainter(_drawingPoints),
+                                size: Size.infinite,
                               ),
                             ),
                           ),
                         ),
-                      ),
-                  ],
+                      const Spacer(),
+                      // Create Account button - moves up with keyboard
+                      if (isCreateAccountButtonVisible)
+                        Padding(
+                          padding: EdgeInsets.only(
+                            bottom: bottomInset > 0 ? bottomInset + 16 : 40,
+                          ),
+                          child: SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              onPressed: () {
+                                FocusScope.of(
+                                  context,
+                                ).unfocus(); // Dismiss keyboard
+                                setState(() {
+                                  isCreateAccountButtonVisible = false;
+                                  isDrawingCheckmark = true;
+                                });
+                                _openDraw!.trigger();
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.white,
+                                foregroundColor: Colors.black,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                elevation: 0,
+                              ),
+                              child: Text(
+                                'Create Account',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      // Show Me How button - shown on import screen
+                      if (isImportScreen)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: 40),
+                          child: SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              onPressed: () {
+                                // Handle show me how action
+                                Navigator.push(
+                                  context,
+                                  PageRouteBuilder(
+                                    pageBuilder: (context, animation, secondaryAnimation) =>
+                                        TutorialPage(),
+                                    transitionsBuilder:
+                                        (context, animation, secondaryAnimation, child) {
+                                      return SlideTransition(
+                                        position: Tween<Offset>(
+                                          begin: const Offset(0, 1),
+                                          end: Offset.zero,
+                                        ).animate(CurvedAnimation(
+                                          parent: animation,
+                                          curve: Curves.easeOutCubic,
+                                        )),
+                                        child: child,
+                                      );
+                                    },
+                                    transitionDuration: const Duration(milliseconds: 400),
+                                  ),
+                                );
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.white,
+                                foregroundColor: Colors.black,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 16,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                elevation: 0,
+                              ),
+                              child: Text(
+                                'Show Me How',
+                                style: GoogleFonts.poppins(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               ),
             ),
