@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:banter/breakdown_screen.dart';
 import 'package:banter/model/chat_analysis_response.dart';
+import 'package:banter/splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:rive/rive.dart';
@@ -36,7 +37,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
-      home: BreakdownScreen(analysisData: testData),
+      home: SplashScreen(),
     );
   }
 }
