@@ -101,7 +101,7 @@ class _BreakdownScreenState extends State<BreakdownScreen> {
   static const _tapThreshold = Duration(milliseconds: 200);
 
   // Red alert cycling state
-  int _currentRedAlertIndex = 1;
+  int _currentRedAlertIndex = 0;
   ViewModelInstanceTrigger? _nextRedAlertTrigger;
 
   ViewModelInstanceString? _redAlertName;
@@ -122,6 +122,7 @@ class _BreakdownScreenState extends State<BreakdownScreen> {
   }
 
   void _goToNext() {
+    isNextPressed = true;
     print(_currentBreakdown);
     isInitialized = true;
     switch (_currentBreakdown) {
@@ -205,10 +206,8 @@ class _BreakdownScreenState extends State<BreakdownScreen> {
       case BreakdownState.breakdown9:
         // If at first red alert, go back to breakdown_8
         if (_currentRedAlertIndex <= 0) {
-          if (_currentRedAlertIndex == 0) {
-            _currentRedAlertIndex = 2;
-            print("roita $_currentRedAlertIndex");
-          }
+          // Reset to 0 so first red alert shows when coming forward again
+          _currentRedAlertIndex = 0;
           _breakdown8Trigger?.trigger();
         } else {
           // Cycle to previous red alert - name change handled by event listener
@@ -445,6 +444,14 @@ class _BreakdownScreenState extends State<BreakdownScreen> {
           }
           // Reset showLastImmediately so going back from breakdown_6 shows breakdown_5
           showLastImmediately?.value = false;
+          // Ensure red alert data is set for current index when entering breakdown_9
+          if (redFlags.isNotEmpty) {
+            _redAlertName?.value = getName(redFlags[_currentRedAlertIndex].name);
+            _redAlertPersonalityType?.value =
+                redFlags[_currentRedAlertIndex].personalityType;
+            _redAlertDescription?.value =
+                redFlags[_currentRedAlertIndex].description;
+          }
           break;
         case 'change_red_alert':
           if (isNextPressed) {

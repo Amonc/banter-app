@@ -1,186 +1,80 @@
 {
   "message_stats": {
-    "total_messages": 4409,
-    "avg_messages_per_day": 3.2,
+    "total_messages": 132,
+    "avg_messages_per_day": 0.5,
     "most_active_day": "Thursday"
   },
   "loudest_member": {
-    "name": "Sonia Delhon",
-    "count": 671,
+    "name": "Rijvi",
+    "count": 69,
     "details": null
   },
   "top_emojis": [
     {
       "emoji": "😂",
-      "count": 62
-    },
-    {
-      "emoji": "😂😂",
-      "count": 17
-    },
-    {
-      "emoji": "♀️",
-      "count": 17
-    },
-    {
-      "emoji": "🏽",
-      "count": 14
-    },
-    {
-      "emoji": "👀",
-      "count": 11
+      "count": 1
     }
   ],
   "personalities": [
     {
-      "name": "Deepa Maisuria",
-      "personality_type": "The Meticulous Maestro",
-      "description": "The primary organizer, she initiates the group, sets the itinerary, clarifies details, and ensures everyone's needs (especially the kids') are considered."
+      "name": "Rijvi",
+      "personality_type": "The Hustler",
+      "description": "Always juggling multiple project balls, from client budgets to app deployments and even personal finances, often with a dash of urgent requests."
     },
     {
-      "name": "ashish garg",
-      "personality_type": "The Pragmatic Party-Enabler",
-      "description": "He's the practical one, asking logistical questions about check-ins and passes, handling room assignments, and then casually offering 'gummies' for the evening's entertainment."
-    },
-    {
-      "name": "Raveen Bhalla",
-      "personality_type": "The Steady Supporter",
-      "description": "Reliable and detail-oriented, he confirms information, monitors external factors like air quality, and is ready to jump in to help with logistics or wrangle kids for naps."
-    },
-    {
-      "name": "Sonia Delhon",
-      "personality_type": "The Energetic Experience Curator",
-      "description": "Brimming with enthusiasm, she researches and suggests activities, provides useful information (like pool prices), and is always excited about shared meals and fun."
-    },
-    {
-      "name": "Jennifer Jolly",
-      "personality_type": "The Adaptable Adventurer",
-      "description": "She's spontaneous and flexible, ready to coordinate travel, bring games, shift plans on a dime, and is always eager for a social gathering or a dip in the hot tub."
-    },
-    {
-      "name": "Shawn Kanungo",
-      "personality_type": "The Charismatic Instigator",
-      "description": "The group's resident jokester, he lightens the mood with witty remarks, uses emojis, and is consistently focused on finding the next social event or 'after after party'."
-    },
-    {
-      "name": "Jeff Leong",
-      "personality_type": "The Outdoorsy Opportunist",
-      "description": "He's keen on active pursuits, asking about hotel amenities like pools and consistently extending open invitations for hikes, embracing the mountain environment."
-    },
-    {
-      "name": "Tessa Leong",
-      "personality_type": "The Harmonious Helper",
-      "description": "A supportive co-pilot, she coordinates effortlessly with her partner, asks practical questions for the group's comfort, and is quick to offer assistance with food runs or kids' needs."
-    },
-    {
-      "name": "Nazia Shaikh",
-      "personality_type": "The Quiet Companion",
-      "description": "She's an active participant by presence, absorbing all the group's plans and chatter without feeling the need to contribute verbally."
-    },
-    {
-      "name": "Fahad Shaikh",
-      "personality_type": "The Elusive Enigma",
-      "description": "A true mystery, his complete silence in the chat makes him the ultimate observer, possibly enjoying the trip without any digital footprint."
+      "name": "Amon C",
+      "personality_type": "The Pragmatic Problem-Solver",
+      "description": "The resident expert who cuts straight to the technical chase, meticulously identifies potential pitfalls, and ensures all the digital ducks are in a row."
     }
   ],
   "top_contributors": [
     {
-      "name": "Jennifer Jolly",
-      "count": 481,
+      "name": "Amon C",
+      "count": 63,
       "details": null
     },
     {
-      "name": "Nazia Shaikh",
-      "count": 523,
-      "details": null
-    },
-    {
-      "name": "Shawn Kanungo",
-      "count": 622,
-      "details": null
-    },
-    {
-      "name": "Sonia Delhon",
-      "count": 671,
+      "name": "Rijvi",
+      "count": 69,
       "details": null
     }
   ],
   "most_words": {
-    "name": "Shawn Kanungo",
-    "count": 5791,
+    "name": "Rijvi",
+    "count": 1146,
     "details": null
   },
   "funniest_member": {
-    "name": "Nazia Shaikh",
-    "count": 31,
+    "name": "Amon C",
+    "count": 1,
     "details": null
   },
   "most_replies": {
-    "name": "Deepa Maisuria",
-    "count": 0,
+    "name": "Rijvi",
+    "count": 1,
     "details": null
   },
   "red_flags": [
     {
-      "name": "Deepa Maisuria",
-      "personality_type": "The Meticulous Maestro",
-      "description": "Her initial date mix-up and subsequent detailed corrections show a slight overreliance on her own organizational prowess, sometimes leading to minor confusion."
+      "name": "Rijvi",
+      "personality_type": "The Hustler's Last-Minute Loan Request",
+      "description": "His approach to financial planning can sometimes feel like a last-minute scramble, casually turning project funds into personal loans with a swift 'Mama, can you spot me 35k?'"
     },
     {
-      "name": "ashish garg",
-      "personality_type": "The Pragmatic Party-Enabler",
-      "description": "His casual offer of 'gummies' for the after-party highlights a playful disregard for the 'family trip' vibe, perhaps pushing the boundaries of what's appropriate for a group with kids."
-    },
-    {
-      "name": "Raveen Bhalla",
-      "personality_type": "The Steady Supporter",
-      "description": "His intense focus on air quality and detailed logistical confirmations suggests he might be a bit of an information-overloader, always needing to verify every detail."
-    },
-    {
-      "name": "Sonia Delhon",
-      "personality_type": "The Energetic Experience Curator",
-      "description": "Her rapid-fire suggestions for activities and immediate excitement for food could unintentionally steamroll less assertive group members who might prefer a slower pace."
-    },
-    {
-      "name": "Jennifer Jolly",
-      "personality_type": "The Adaptable Adventurer",
-      "description": "Her quick shifts in plans ('Change of plans,' 'Aquatic centre in the afternoon') indicate a spontaneity that, while fun, might make it hard for others to keep up with the evolving itinerary."
-    },
-    {
-      "name": "Shawn Kanungo",
-      "personality_type": "The Charismatic Instigator",
-      "description": "His playful jabs ('fix it to Montenegro,' 'molly kicks in') and constant search for the 'after after party' reveal a desire to keep the energy high, even if it means disrupting more sedate plans."
-    },
-    {
-      "name": "Jeff Leong",
-      "personality_type": "The Outdoorsy Opportunist",
-      "description": "His persistent invitations for hikes, even amidst discussions of indoor pools and meal plans, suggests a singular focus on his preferred activities, sometimes missing the group's current mood."
-    },
-    {
-      "name": "Tessa Leong",
-      "personality_type": "The Harmonious Helper",
-      "description": "Her willingness to accommodate everyone ('Sure, we’re good with wherever') might mean she rarely voices her own strong preferences, potentially leading to unmet desires."
-    },
-    {
-      "name": "Nazia Shaikh",
-      "personality_type": "The Quiet Companion",
-      "description": "Her complete silence in the chat, despite being a named participant, means she's either incredibly low-maintenance or secretly judging all the chaos from afar."
-    },
-    {
-      "name": "Fahad Shaikh",
-      "personality_type": "The Elusive Enigma",
-      "description": "His total absence of messages makes one wonder if he's even aware he's in a group chat, or if he just delegates all communication duties to his travel companions."
+      "name": "Amon C",
+      "personality_type": "The Pragmatic's Cryptic Conciseness",
+      "description": "While brilliant at technical analysis, his communication is so admirably concise it occasionally borders on cryptic, leaving others to decode his one-word wisdom like 'None' or 'Hae'."
     }
   ],
   "movie_match": {
-    "movie": "Inside Out",
-    "reason": "This group's dynamic, with various personalities (and kids!) trying to navigate a shared trip, perfectly mirrors the film's concept of different emotions and perspectives working together to steer an experience, complete with moments of joy, frustration, and unexpected turns."
+    "movie": "Moneyball",
+    "reason": "This group's vibe is all about strategic problem-solving, resource allocation (especially budget discussions), and leveraging expertise to get a project across the finish line, much like building a winning team with limited resources. They navigate technical hurdles and financial asks with a direct, no-nonsense approach focused on results."
   },
   "custom_analysis": null,
-  "group_chat_name": "Seahorse",
-  "response_time_seconds": 19.22,
+  "group_chat_name": null,
+  "response_time_seconds": 12.86,
   "token_usage": {
-    "input_tokens": 20083,
-    "output_tokens": 1485
+    "input_tokens": 4885,
+    "output_tokens": 390
   }
 }
