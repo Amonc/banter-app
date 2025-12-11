@@ -468,9 +468,8 @@ class _BreakdownScreenState extends State<BreakdownScreen> {
 
               _showRedAlertImmediately!.value = false;
             } else {
-              //need to shoe movie breakdown
-              _currentBreakdown = BreakdownState.breakdown9;
-              _breakdown9Trigger?.trigger();
+              // At first red alert going backward, go to breakdown_8
+              _breakdown8Trigger?.trigger();
             }
           }
 
