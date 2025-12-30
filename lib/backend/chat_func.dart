@@ -59,9 +59,19 @@ class AuthenticationException extends ApiException {
 }
 
 class ChatAnalyzer {
-  static String get _baseUrl => kDebugMode
-      ? dotenv.env['LOCAL_API_BASE_URL'] ?? ''
-      : dotenv.env['API_BASE_URL'] ?? '';
+  static String get _baseUrl {
+    if (!kDebugMode) {
+      return dotenv.env['API_BASE_URL'] ?? '';
+    }
+    // In debug mode, use 10.0.2.2 for Android emulator (maps to host localhost)
+    // and localhost for iOS simulator (shares host network)
+    final localUrl = dotenv.env['LOCAL_API_BASE_URL'] ?? '';
+    if (Platform.isAndroid) {
+      return localUrl.replaceFirst('localhost', '10.0.2.2');
+    }
+    return localUrl;
+  }
+
   static String get _apiKey => dotenv.env['API_KEY'] ?? '';
 
   /// Parses error response and throws the appropriate exception
