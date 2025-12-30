@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:rive/rive.dart';
 import 'package:banter/model/chat_analysis_response.dart';
 import 'package:banter/chat_screen.dart';
-import 'package:banter/services/audio_service.dart';
 
 /// Enum to track which breakdown is currently active
 enum BreakdownState {
@@ -120,11 +119,6 @@ class _BreakdownScreenState extends State<BreakdownScreen> {
   void initState() {
     super.initState();
     initRive();
-    _playBoomSound();
-  }
-
-  void _playBoomSound() {
-    AudioService().playBoomLoop();
   }
 
   void _goToNext() {
@@ -452,7 +446,9 @@ class _BreakdownScreenState extends State<BreakdownScreen> {
           showLastImmediately?.value = false;
           // Ensure red alert data is set for current index when entering breakdown_9
           if (redFlags.isNotEmpty) {
-            _redAlertName?.value = getName(redFlags[_currentRedAlertIndex].name);
+            _redAlertName?.value = getName(
+              redFlags[_currentRedAlertIndex].name,
+            );
             _redAlertPersonalityType?.value =
                 redFlags[_currentRedAlertIndex].personalityType;
             _redAlertDescription?.value =

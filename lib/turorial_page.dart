@@ -7,6 +7,15 @@ import 'package:flutter/material.dart';
 import 'package:rive/rive.dart';
 import 'package:file_picker/file_picker.dart';
 
+export 'package:banter/backend/chat_func.dart'
+    show
+        ApiException,
+        InputTooLargeException,
+        AIProcessingException,
+        RateLimitException,
+        ServiceUnavailableException,
+        AuthenticationException;
+
 class TutorialPage extends StatefulWidget {
   const TutorialPage({super.key});
 
@@ -25,6 +34,7 @@ class _TutorialPageState extends State<TutorialPage> {
   ViewModelInstanceTrigger? _uploadClick;
   ViewModelInstanceTrigger? _openCook;
   ViewModelInstanceTrigger? _openGetReady;
+  ViewModelInstanceString? _groupChatName;
 
   @override
   void initState() {
@@ -45,6 +55,9 @@ class _TutorialPageState extends State<TutorialPage> {
     _openCook = vmi.trigger('open_cook');
 
     _openGetReady = vmi.trigger('open_get_ready');
+
+    _groupChatName = vmi.string('group_chat_name');
+    _groupChatName?.value = 'Besties';
 
     // Listen for the trigger firing (caused by your Rive "Pointer Click" listener)
     _uploadClick!.addListener((bool _) {
@@ -124,28 +137,46 @@ class _TutorialPageState extends State<TutorialPage> {
             ),
           );
         }
+      } on InputTooLargeException catch (e) {
+        _showError(e.message);
+      } on RateLimitException catch (e) {
+        _showError(e.message, isRetryable: true);
+      } on ServiceUnavailableException catch (e) {
+        _showError(e.message, isRetryable: true);
+      } on ApiException catch (e) {
+        _showError(e.message);
       } catch (e) {
-        setState(() {
-          errorMessage = 'Failed to analyze chat: $e';
-          isAnalyzing = false;
-        });
-
-        // Show error to user
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(errorMessage!),
-              backgroundColor: Colors.red,
-              duration: Duration(seconds: 5),
-            ),
-          );
-        }
+        _showError('Failed to analyze chat. Please try again.');
       }
     } catch (e) {
       setState(() {
         errorMessage = 'Error picking file: $e';
         isAnalyzing = false;
       });
+    }
+  }
+
+  void _showError(String message, {bool isRetryable = false}) {
+    setState(() {
+      errorMessage = message;
+      isAnalyzing = false;
+    });
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: isRetryable ? Colors.orange.shade700 : Colors.red,
+          duration: const Duration(seconds: 5),
+          action: isRetryable
+              ? SnackBarAction(
+                  label: 'Retry',
+                  textColor: Colors.white,
+                  onPressed: _pickAndUploadFile,
+                )
+              : null,
+        ),
+      );
     }
   }
 

@@ -3,12 +3,14 @@ class ChatMessage {
   final bool isUser;
   final DateTime timestamp;
   final ChatResult? chatResult; // For AI responses with structured data
+  final bool isError; // For error messages
 
   ChatMessage({
     required this.content,
     required this.isUser,
     required this.timestamp,
     this.chatResult,
+    this.isError = false,
   });
 }
 
@@ -17,17 +19,10 @@ class ChatRequest {
   final String? sessionId;
   final int sampleSize;
 
-  ChatRequest({
-    required this.query,
-    this.sessionId,
-    this.sampleSize = 200,
-  });
+  ChatRequest({required this.query, this.sessionId, this.sampleSize = 200});
 
   Map<String, String> toFormData() {
-    final data = {
-      'query': query,
-      'sample_size': sampleSize.toString(),
-    };
+    final data = {'query': query, 'sample_size': sampleSize.toString()};
 
     if (sessionId != null) {
       data['session_id'] = sessionId!;
@@ -53,15 +48,18 @@ class ChatResult {
   factory ChatResult.fromJson(Map<String, dynamic> json) {
     return ChatResult(
       answer: json['answer'] as String? ?? '',
-      insights: (json['insights'] as List<dynamic>?)
+      insights:
+          (json['insights'] as List<dynamic>?)
               ?.map((e) => e as String)
               .toList() ??
           [],
-      mentionedParticipants: (json['mentioned_participants'] as List<dynamic>?)
+      mentionedParticipants:
+          (json['mentioned_participants'] as List<dynamic>?)
               ?.map((e) => e as String)
               .toList() ??
           [],
-      followUpQuestions: (json['follow_up_questions'] as List<dynamic>?)
+      followUpQuestions:
+          (json['follow_up_questions'] as List<dynamic>?)
               ?.map((e) => e as String)
               .toList() ??
           [],
@@ -102,8 +100,5 @@ class TokenUsage {
   final int inputTokens;
   final int outputTokens;
 
-  TokenUsage({
-    required this.inputTokens,
-    required this.outputTokens,
-  });
+  TokenUsage({required this.inputTokens, required this.outputTokens});
 }

@@ -6,6 +6,16 @@ import 'package:banter/model/chat_message.dart';
 import 'package:banter/services/file_storage_service.dart';
 import 'package:file_picker/file_picker.dart';
 
+// Re-export exceptions for convenience
+export 'package:banter/backend/chat_func.dart'
+    show
+        ApiException,
+        InputTooLargeException,
+        AIProcessingException,
+        RateLimitException,
+        ServiceUnavailableException,
+        AuthenticationException;
+
 class ChatScreen extends StatefulWidget {
   const ChatScreen({super.key});
 
@@ -196,11 +206,9 @@ class _ChatScreenState extends State<ChatScreen> {
     if (message.isEmpty || _isLoading || _chatFile == null) return;
 
     setState(() {
-      _messages.add(ChatMessage(
-        content: message,
-        isUser: true,
-        timestamp: DateTime.now(),
-      ));
+      _messages.add(
+        ChatMessage(content: message, isUser: true, timestamp: DateTime.now()),
+      );
       _isLoading = true;
       _messageController.clear();
     });
@@ -218,27 +226,59 @@ class _ChatScreenState extends State<ChatScreen> {
         // Update session ID after first response
         _sessionId ??= response.sessionId;
 
-        _messages.add(ChatMessage(
-          content: response.result.answer,
-          isUser: false,
-          timestamp: DateTime.now(),
-          chatResult: response.result,
-        ));
+        _messages.add(
+          ChatMessage(
+            content: response.result.answer,
+            isUser: false,
+            timestamp: DateTime.now(),
+            chatResult: response.result,
+          ),
+        );
         _isLoading = false;
       });
 
       _scrollToBottom();
+    } on RateLimitException catch (e) {
+      _showErrorMessage(e.message, isRetryable: true);
+    } on InputTooLargeException catch (e) {
+      _showErrorMessage(e.message);
+    } on ServiceUnavailableException catch (e) {
+      _showErrorMessage(e.message, isRetryable: true);
+    } on ApiException catch (e) {
+      _showErrorMessage(e.message);
     } catch (e) {
-      setState(() {
-        _messages.add(ChatMessage(
-          content: 'Error: ${e.toString()}',
+      _showErrorMessage('Something went wrong. Please try again.');
+    }
+  }
+
+  void _showErrorMessage(String message, {bool isRetryable = false}) {
+    setState(() {
+      _messages.add(
+        ChatMessage(
+          content: message,
           isUser: false,
           timestamp: DateTime.now(),
-        ));
-        _isLoading = false;
-      });
+          isError: true,
+        ),
+      );
+      _isLoading = false;
+    });
 
-      _scrollToBottom();
+    _scrollToBottom();
+
+    if (isRetryable) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: Colors.orange.shade700,
+          duration: const Duration(seconds: 4),
+          action: SnackBarAction(
+            label: 'Retry',
+            textColor: Colors.white,
+            onPressed: _sendMessage,
+          ),
+        ),
+      );
     }
   }
 
@@ -257,10 +297,7 @@ class _ChatScreenState extends State<ChatScreen> {
                 height: 80,
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [
-                      Colors.purple.shade300,
-                      Colors.blue.shade300,
-                    ],
+                    colors: [Colors.purple.shade300, Colors.blue.shade300],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -301,10 +338,7 @@ class _ChatScreenState extends State<ChatScreen> {
         backgroundColor: Colors.purple.shade400,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(
-            Icons.arrow_back_ios,
-            color: Colors.white,
-          ),
+          icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
@@ -318,10 +352,7 @@ class _ChatScreenState extends State<ChatScreen> {
         centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(
-              Icons.lightbulb_outline,
-              color: Colors.white,
-            ),
+            icon: const Icon(Icons.lightbulb_outline, color: Colors.white),
             onPressed: _showHintsBottomSheet,
             tooltip: 'Suggestions',
           ),
@@ -382,7 +413,9 @@ class _ChatScreenState extends State<ChatScreen> {
                             height: 120,
                             child: ListView.builder(
                               scrollDirection: Axis.horizontal,
-                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                              ),
                               itemCount: _presetQuestions.length,
                               itemBuilder: (context, index) {
                                 return Padding(
@@ -393,18 +426,29 @@ class _ChatScreenState extends State<ChatScreen> {
                                       onTap: _isLoading
                                           ? null
                                           : () => _sendPresetQuestion(
-                                              _presetQuestions[index]),
+                                              _presetQuestions[index],
+                                            ),
                                       borderRadius: BorderRadius.circular(16),
-                                      splashColor: Colors.white.withValues(alpha: 0.1),
-                                      highlightColor: Colors.white.withValues(alpha: 0.05),
+                                      splashColor: Colors.white.withValues(
+                                        alpha: 0.1,
+                                      ),
+                                      highlightColor: Colors.white.withValues(
+                                        alpha: 0.05,
+                                      ),
                                       child: Container(
                                         width: 280,
                                         padding: const EdgeInsets.all(16),
                                         decoration: BoxDecoration(
-                                          color: Colors.white.withValues(alpha: 0.15),
-                                          borderRadius: BorderRadius.circular(16),
+                                          color: Colors.white.withValues(
+                                            alpha: 0.15,
+                                          ),
+                                          borderRadius: BorderRadius.circular(
+                                            16,
+                                          ),
                                           border: Border.all(
-                                            color: Colors.white.withValues(alpha: 0.3),
+                                            color: Colors.white.withValues(
+                                              alpha: 0.3,
+                                            ),
                                             width: 1,
                                           ),
                                         ),
@@ -447,7 +491,9 @@ class _ChatScreenState extends State<ChatScreen> {
                         final message = _messages[index];
                         return _MessageBubble(
                           message: message,
-                          onFollowUpTap: _isLoading ? null : _sendPresetQuestion,
+                          onFollowUpTap: _isLoading
+                              ? null
+                              : _sendPresetQuestion,
                         );
                       },
                     ),
@@ -553,10 +599,7 @@ class _ChatScreenState extends State<ChatScreen> {
                     height: 48,
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
-                        colors: [
-                          Colors.purple.shade400,
-                          Colors.blue.shade400,
-                        ],
+                        colors: [Colors.purple.shade400, Colors.blue.shade400],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
@@ -589,10 +632,7 @@ class _MessageBubble extends StatelessWidget {
   final ChatMessage message;
   final void Function(String)? onFollowUpTap;
 
-  const _MessageBubble({
-    required this.message,
-    this.onFollowUpTap,
-  });
+  const _MessageBubble({required this.message, this.onFollowUpTap});
 
   @override
   Widget build(BuildContext context) {
@@ -600,12 +640,14 @@ class _MessageBubble extends StatelessWidget {
     final hasInsights = chatResult != null && chatResult.insights.isNotEmpty;
     final hasFollowUps =
         chatResult != null && chatResult.followUpQuestions.isNotEmpty;
+    final isError = message.isError;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 16),
       child: Row(
-        mainAxisAlignment:
-            message.isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment: message.isUser
+            ? MainAxisAlignment.end
+            : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           if (!message.isUser) ...[
@@ -613,16 +655,19 @@ class _MessageBubble extends StatelessWidget {
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                color: const Color(0xFFE9B8F0),
+                color: isError ? Colors.red.shade100 : const Color(0xFFE9B8F0),
                 borderRadius: BorderRadius.circular(18),
               ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(18),
-                child: Image.asset(
-                  'assets/icon.png',
-                  fit: BoxFit.cover,
-                ),
-              ),
+              child: isError
+                  ? Icon(
+                      Icons.error_outline,
+                      color: Colors.red.shade700,
+                      size: 20,
+                    )
+                  : ClipRRect(
+                      borderRadius: BorderRadius.circular(18),
+                      child: Image.asset('assets/icon.png', fit: BoxFit.cover),
+                    ),
             ),
             const SizedBox(width: 8),
           ],
@@ -639,24 +684,32 @@ class _MessageBubble extends StatelessWidget {
                     vertical: 12,
                   ),
                   decoration: BoxDecoration(
-                    gradient: message.isUser
+                    gradient: message.isUser || isError
                         ? null
                         : const LinearGradient(
-                            colors: [
-                              Color(0xFF1E3A8A),
-                              Color(0xFF2563EB),
-                            ],
+                            colors: [Color(0xFF1E3A8A), Color(0xFF2563EB)],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),
-                    color: message.isUser ? Colors.white : null,
+                    color: message.isUser
+                        ? Colors.white
+                        : isError
+                        ? Colors.red.shade50
+                        : null,
                     borderRadius: BorderRadius.circular(20),
+                    border: isError
+                        ? Border.all(color: Colors.red.shade200)
+                        : null,
                   ),
                   child: Text(
                     message.content,
                     style: GoogleFonts.inter(
                       fontSize: 15,
-                      color: message.isUser ? Colors.black87 : Colors.white,
+                      color: message.isUser
+                          ? Colors.black87
+                          : isError
+                          ? Colors.red.shade800
+                          : Colors.white,
                       height: 1.4,
                     ),
                   ),
@@ -714,7 +767,9 @@ class _MessageBubble extends StatelessWidget {
                                     insight,
                                     style: GoogleFonts.inter(
                                       fontSize: 13,
-                                      color: Colors.white.withValues(alpha: 0.9),
+                                      color: Colors.white.withValues(
+                                        alpha: 0.9,
+                                      ),
                                       height: 1.3,
                                     ),
                                   ),

@@ -6,11 +6,94 @@ import 'dart:convert';
 import 'package:banter/model/chat_analysis_response.dart';
 import 'package:banter/model/chat_message.dart';
 
+/// Base exception for API errors
+class ApiException implements Exception {
+  final String message;
+  final int statusCode;
+
+  ApiException(this.message, this.statusCode);
+
+  @override
+  String toString() => message;
+}
+
+/// Thrown when the input is too large (413)
+class InputTooLargeException extends ApiException {
+  InputTooLargeException([String? message])
+    : super(
+        message ??
+            'The chat file is too large to process. Try using a smaller file or reducing the number of messages.',
+        413,
+      );
+}
+
+/// Thrown when AI processing fails (422)
+class AIProcessingException extends ApiException {
+  AIProcessingException([String? message])
+    : super(message ?? 'Failed to process the chat. Please try again.', 422);
+}
+
+/// Thrown when rate limit is exceeded (429)
+class RateLimitException extends ApiException {
+  RateLimitException([String? message])
+    : super(
+        message ?? 'Too many requests. Please wait a moment and try again.',
+        429,
+      );
+}
+
+/// Thrown when service is unavailable (503)
+class ServiceUnavailableException extends ApiException {
+  ServiceUnavailableException([String? message])
+    : super(
+        message ??
+            'Service is temporarily unavailable. Please try again later.',
+        503,
+      );
+}
+
+/// Thrown for authentication errors (401/403)
+class AuthenticationException extends ApiException {
+  AuthenticationException([String? message])
+    : super(message ?? 'Authentication failed. Please contact support.', 401);
+}
+
 class ChatAnalyzer {
   static String get _baseUrl => kDebugMode
       ? dotenv.env['LOCAL_API_BASE_URL'] ?? ''
       : dotenv.env['API_BASE_URL'] ?? '';
   static String get _apiKey => dotenv.env['API_KEY'] ?? '';
+
+  /// Parses error response and throws the appropriate exception
+  static Never _handleErrorResponse(http.Response response) {
+    String? detail;
+    try {
+      final jsonBody = json.decode(response.body) as Map<String, dynamic>;
+      detail = jsonBody['detail'] as String?;
+    } catch (_) {
+      // Body is not JSON, use as-is
+      detail = response.body;
+    }
+
+    switch (response.statusCode) {
+      case 401:
+      case 403:
+        throw AuthenticationException(detail);
+      case 413:
+        throw InputTooLargeException(detail);
+      case 422:
+        throw AIProcessingException(detail);
+      case 429:
+        throw RateLimitException(detail);
+      case 503:
+        throw ServiceUnavailableException(detail);
+      default:
+        throw ApiException(
+          detail ?? 'Request failed with status ${response.statusCode}',
+          response.statusCode,
+        );
+    }
+  }
 
   /// Analyzes a chat file using the backend API
   ///
@@ -47,12 +130,12 @@ class ChatAnalyzer {
         final jsonResponse = json.decode(response.body) as Map<String, dynamic>;
         return ChatAnalysisResponse.fromJson(jsonResponse);
       } else {
-        throw Exception(
-          'Failed to analyze chat: ${response.statusCode} - ${response.body}',
-        );
+        _handleErrorResponse(response);
       }
+    } on ApiException {
+      rethrow;
     } catch (e) {
-      throw Exception('Error analyzing chat: $e');
+      throw ApiException('Error analyzing chat: $e', 0);
     }
   }
 
@@ -123,12 +206,12 @@ class ChatAnalyzer {
         final jsonResponse = json.decode(response.body) as Map<String, dynamic>;
         return ChatResponse.fromJson(jsonResponse);
       } else {
-        throw Exception(
-          'Failed to send chat message: ${response.statusCode} - ${response.body}',
-        );
+        _handleErrorResponse(response);
       }
+    } on ApiException {
+      rethrow;
     } catch (e) {
-      throw Exception('Error sending chat message: $e');
+      throw ApiException('Error sending chat message: $e', 0);
     }
   }
 }

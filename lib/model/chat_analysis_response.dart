@@ -32,7 +32,6 @@ class ChatAnalysisResponse {
   });
 
   factory ChatAnalysisResponse.fromJson(Map<String, dynamic> json) {
-    print(json);
     return ChatAnalysisResponse(
       messageStats: MessageStats.fromJson(json['message_stats']),
       loudestMember: LoudestMember.fromJson(json['loudest_member']),
@@ -53,7 +52,7 @@ class ChatAnalysisResponse {
           .toList(),
       movieMatch: MovieMatch.fromJson(json['movie_match']),
       customAnalysis: json['custom_analysis'],
-      groupChatName: json['group_chat_name']??"",
+      groupChatName: json['group_chat_name'] ?? "",
       responseTimeSeconds: (json['response_time_seconds'] as num).toDouble(),
       tokenUsage: TokenUsage.fromJson(json['token_usage']),
     );
@@ -112,11 +111,7 @@ class LoudestMember {
   final int count;
   final dynamic details;
 
-  LoudestMember({
-    required this.name,
-    required this.count,
-    this.details,
-  });
+  LoudestMember({required this.name, required this.count, this.details});
 
   factory LoudestMember.fromJson(Map<String, dynamic> json) {
     return LoudestMember(
@@ -127,11 +122,7 @@ class LoudestMember {
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'name': name,
-      'count': count,
-      'details': details,
-    };
+    return {'name': name, 'count': count, 'details': details};
   }
 }
 
@@ -139,23 +130,14 @@ class TopEmoji {
   final String emoji;
   final int count;
 
-  TopEmoji({
-    required this.emoji,
-    required this.count,
-  });
+  TopEmoji({required this.emoji, required this.count});
 
   factory TopEmoji.fromJson(Map<String, dynamic> json) {
-    return TopEmoji(
-      emoji: json['emoji'],
-      count: json['count'],
-    );
+    return TopEmoji(emoji: json['emoji'], count: json['count']);
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'emoji': emoji,
-      'count': count,
-    };
+    return {'emoji': emoji, 'count': count};
   }
 }
 
@@ -192,11 +174,7 @@ class TopContributor {
   final int count;
   final dynamic details;
 
-  TopContributor({
-    required this.name,
-    required this.count,
-    this.details,
-  });
+  TopContributor({required this.name, required this.count, this.details});
 
   factory TopContributor.fromJson(Map<String, dynamic> json) {
     return TopContributor(
@@ -207,11 +185,7 @@ class TopContributor {
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'name': name,
-      'count': count,
-      'details': details,
-    };
+    return {'name': name, 'count': count, 'details': details};
   }
 }
 
@@ -220,11 +194,7 @@ class MostWords {
   final int count;
   final dynamic details;
 
-  MostWords({
-    required this.name,
-    required this.count,
-    this.details,
-  });
+  MostWords({required this.name, required this.count, this.details});
 
   factory MostWords.fromJson(Map<String, dynamic> json) {
     return MostWords(
@@ -235,11 +205,7 @@ class MostWords {
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'name': name,
-      'count': count,
-      'details': details,
-    };
+    return {'name': name, 'count': count, 'details': details};
   }
 }
 
@@ -248,11 +214,7 @@ class FunniestMember {
   final int count;
   final dynamic details;
 
-  FunniestMember({
-    required this.name,
-    required this.count,
-    this.details,
-  });
+  FunniestMember({required this.name, required this.count, this.details});
 
   factory FunniestMember.fromJson(Map<String, dynamic> json) {
     return FunniestMember(
@@ -263,11 +225,7 @@ class FunniestMember {
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'name': name,
-      'count': count,
-      'details': details,
-    };
+    return {'name': name, 'count': count, 'details': details};
   }
 }
 
@@ -276,11 +234,7 @@ class MostReplies {
   final int count;
   final dynamic details;
 
-  MostReplies({
-    required this.name,
-    required this.count,
-    this.details,
-  });
+  MostReplies({required this.name, required this.count, this.details});
 
   factory MostReplies.fromJson(Map<String, dynamic> json) {
     return MostReplies(
@@ -291,11 +245,7 @@ class MostReplies {
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'name': name,
-      'count': count,
-      'details': details,
-    };
+    return {'name': name, 'count': count, 'details': details};
   }
 }
 
@@ -331,23 +281,14 @@ class MovieMatch {
   final String movie;
   final String reason;
 
-  MovieMatch({
-    required this.movie,
-    required this.reason,
-  });
+  MovieMatch({required this.movie, required this.reason});
 
   factory MovieMatch.fromJson(Map<String, dynamic> json) {
-    return MovieMatch(
-      movie: json['movie'],
-      reason: json['reason'],
-    );
+    return MovieMatch(movie: json['movie'], reason: json['reason']);
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'movie': movie,
-      'reason': reason,
-    };
+    return {'movie': movie, 'reason': reason};
   }
 }
 
@@ -355,10 +296,7 @@ class TokenUsage {
   final int inputTokens;
   final int outputTokens;
 
-  TokenUsage({
-    required this.inputTokens,
-    required this.outputTokens,
-  });
+  TokenUsage({required this.inputTokens, required this.outputTokens});
 
   factory TokenUsage.fromJson(Map<String, dynamic> json) {
     return TokenUsage(
@@ -368,9 +306,6 @@ class TokenUsage {
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'input_tokens': inputTokens,
-      'output_tokens': outputTokens,
-    };
+    return {'input_tokens': inputTokens, 'output_tokens': outputTokens};
   }
 }
