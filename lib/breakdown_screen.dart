@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:rive/rive.dart';
 import 'package:banter/model/chat_analysis_response.dart';
 import 'package:banter/chat_screen.dart';
+import 'package:banter/services/file_storage_service.dart';
 
 /// Enum to track which breakdown is currently active
 enum BreakdownState {
@@ -58,9 +59,12 @@ class BreakdownScreen extends StatefulWidget {
 }
 
 class _BreakdownScreenState extends State<BreakdownScreen> {
-  late File file;
-  late PausableRiveController controller;
+  File? _riveFile;
+  PausableRiveController? _controller;
   bool isInitialized = false;
+
+  // Getter for controller to avoid null checks everywhere
+  PausableRiveController get controller => _controller!;
 
   // Track active breakdown state
   BreakdownState _currentBreakdown = BreakdownState.breakdown1;
@@ -94,7 +98,7 @@ class _BreakdownScreenState extends State<BreakdownScreen> {
   Map<String, ViewModelInstanceTrigger?> _movieTriggers = {};
 
   // Track which Rive file is currently loaded (0 = breakdown_1_to_4, 1 = breakdown_5_to_9, 2 = breakdown_10)
-  int _currentRiveFile = 0;
+  int _currentRiveFile = -1; // -1 indicates no file loaded yet
 
   // Track press duration to distinguish tap from hold
   DateTime? _pressStartTime;
@@ -118,6 +122,8 @@ class _BreakdownScreenState extends State<BreakdownScreen> {
   @override
   void initState() {
     super.initState();
+    // Store analysis data so ChatScreen can access it for back navigation
+    FileStorageService().saveAnalysisData(widget.analysisData);
     initRive();
   }
 
@@ -167,8 +173,8 @@ class _BreakdownScreenState extends State<BreakdownScreen> {
           _triggerMovieFromResponse();
           _isMovieShowing = true;
         } else {
-          // Second tap: navigate to chat screen
-          Navigator.push(
+          // Second tap: navigate to chat screen (replace to free memory)
+          Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (context) => const ChatScreen()),
           );
@@ -240,23 +246,43 @@ class _BreakdownScreenState extends State<BreakdownScreen> {
   }
 
   void initRive() async {
-    _loadBreakdown1File();
+    if (widget.showlastImmediately) {
+      // Skip to breakdown_10 (movie screen) when coming back from ChatScreen
+      _loadBreakdown10File();
+    } else {
+      _loadBreakdown1File();
+    }
+  }
+
+  /// Safely dispose current Rive resources
+  void _disposeCurrentRiveResources() {
+    if (_currentRiveFile >= 0) {
+      _controller?.dispose();
+      _riveFile?.dispose();
+      _controller = null;
+      _riveFile = null;
+    }
   }
 
   void _loadBreakdown1File({bool goToBreakdown4 = false}) async {
     setState(() => isInitialized = false);
 
     // Dispose existing resources if they exist
-    if (_currentRiveFile != 0) {
-      controller.dispose();
-      file.dispose();
-    }
+    _disposeCurrentRiveResources();
 
-    file = (await File.asset(
+    final loadedFile = await File.asset(
       "assets/breakdown_1_to_4.riv",
       riveFactory: Factory.rive,
-    ))!;
-    controller = PausableRiveController(file);
+    );
+
+    // Check if widget is still mounted after async operation
+    if (!mounted) {
+      loadedFile?.dispose();
+      return;
+    }
+
+    _riveFile = loadedFile!;
+    _controller = PausableRiveController(_riveFile!);
     final vmi = controller.dataBind(DataBind.auto());
 
     // Get trigger references for breakdown_1_to_4.riv
@@ -291,6 +317,7 @@ class _BreakdownScreenState extends State<BreakdownScreen> {
 
     // Listen for state machine state changes
     controller.stateMachine.addEventListener((event) {
+      if (!mounted) return;
       print('State changed: ${event.name}');
 
       // Update the current breakdown based on the state name
@@ -332,14 +359,21 @@ class _BreakdownScreenState extends State<BreakdownScreen> {
     setState(() => isInitialized = false);
 
     // Dispose existing resources
-    controller.dispose();
-    file.dispose();
+    _disposeCurrentRiveResources();
 
-    file = (await File.asset(
+    final loadedFile = await File.asset(
       "assets/breakdown_5_to_9.riv",
       riveFactory: Factory.rive,
-    ))!;
-    controller = PausableRiveController(file);
+    );
+
+    // Check if widget is still mounted after async operation
+    if (!mounted) {
+      loadedFile?.dispose();
+      return;
+    }
+
+    _riveFile = loadedFile!;
+    _controller = PausableRiveController(_riveFile!);
     final vmi = controller.dataBind(DataBind.auto());
 
     // Get trigger references for breakdown_5_to_9.riv
@@ -414,6 +448,7 @@ class _BreakdownScreenState extends State<BreakdownScreen> {
 
     // Listen for state machine state changes
     controller.stateMachine.addEventListener((event) {
+      if (!mounted) return;
       print('State changed: ${event.name}');
 
       // Update the current breakdown based on the state name
@@ -501,20 +536,27 @@ class _BreakdownScreenState extends State<BreakdownScreen> {
   }
 
   void _loadBreakdown10File() async {
-    _showRedAlertImmediately!.value = true;
+    _showRedAlertImmediately?.value = true;
     _isMovieShowing = false; // Reset immediately before async operations
     _movieAutoTriggerTimer?.cancel(); // Cancel any existing timer
     setState(() => isInitialized = false);
 
     // Dispose existing resources
-    controller.dispose();
-    file.dispose();
+    _disposeCurrentRiveResources();
 
-    file = (await File.asset(
+    final loadedFile = await File.asset(
       "assets/breakdown_10.riv",
       riveFactory: Factory.rive,
-    ))!;
-    controller = PausableRiveController(file);
+    );
+
+    // Check if widget is still mounted after async operation
+    if (!mounted) {
+      loadedFile?.dispose();
+      return;
+    }
+
+    _riveFile = loadedFile!;
+    _controller = PausableRiveController(_riveFile!);
     final vmi = controller.dataBind(DataBind.auto());
 
     // Initialize all movie triggers
@@ -562,8 +604,9 @@ class _BreakdownScreenState extends State<BreakdownScreen> {
       'Project X': _movieProjectXTrigger,
     };
 
-    // // Listen for state machine state changes
+    // Listen for state machine state changes
     controller.stateMachine.addEventListener((event) {
+      if (!mounted) return;
       print('State changed: ${event.name}');
 
       // Update to breakdown_10 state for any movie state
@@ -619,8 +662,7 @@ class _BreakdownScreenState extends State<BreakdownScreen> {
   @override
   void dispose() {
     _movieAutoTriggerTimer?.cancel();
-    file.dispose();
-    controller.dispose();
+    _disposeCurrentRiveResources();
     super.dispose();
   }
 

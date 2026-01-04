@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:banter/backend/chat_func.dart';
 import 'package:banter/model/chat_message.dart';
 import 'package:banter/services/file_storage_service.dart';
+import 'package:banter/breakdown_screen.dart';
 import 'package:file_picker/file_picker.dart';
 
 // Re-export exceptions for convenience
@@ -105,6 +106,7 @@ class _ChatScreenState extends State<ChatScreen> {
   void _scrollToBottom() {
     if (_scrollController.hasClients) {
       Future.delayed(const Duration(milliseconds: 100), () {
+        if (!mounted || !_scrollController.hasClients) return;
         _scrollController.animateTo(
           _scrollController.position.maxScrollExtent,
           duration: const Duration(milliseconds: 300),
@@ -222,6 +224,8 @@ class _ChatScreenState extends State<ChatScreen> {
         sessionId: _sessionId,
       );
 
+      if (!mounted) return;
+
       setState(() {
         // Update session ID after first response
         _sessionId ??= response.sessionId;
@@ -239,14 +243,19 @@ class _ChatScreenState extends State<ChatScreen> {
 
       _scrollToBottom();
     } on RateLimitException catch (e) {
+      if (!mounted) return;
       _showErrorMessage(e.message, isRetryable: true);
     } on InputTooLargeException catch (e) {
+      if (!mounted) return;
       _showErrorMessage(e.message);
     } on ServiceUnavailableException catch (e) {
+      if (!mounted) return;
       _showErrorMessage(e.message, isRetryable: true);
     } on ApiException catch (e) {
+      if (!mounted) return;
       _showErrorMessage(e.message);
     } catch (e) {
+      if (!mounted) return;
       _showErrorMessage('Something went wrong. Please try again.');
     }
   }
@@ -339,7 +348,23 @@ class _ChatScreenState extends State<ChatScreen> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () {
+            final analysisData = FileStorageService().getAnalysisData();
+            if (analysisData != null) {
+              // Go back to BreakdownScreen at the last state (breakdown_10)
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => BreakdownScreen(
+                    analysisData: analysisData,
+                    showlastImmediately: true,
+                  ),
+                ),
+              );
+            } else {
+              Navigator.pop(context);
+            }
+          },
         ),
         title: Text(
           'Chat with Banter AI',
@@ -374,102 +399,118 @@ class _ChatScreenState extends State<ChatScreen> {
                         end: Alignment.bottomCenter,
                       ),
                     ),
-                    child: Column(
-                      children: [
-                        const Spacer(),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 40),
-                          child: Column(
-                            children: [
-                              Text(
-                                'Anything\nelse?',
-                                textAlign: TextAlign.center,
-                                style: GoogleFonts.inter(
-                                  fontSize: 64,
-                                  fontWeight: FontWeight.w900,
-                                  color: Colors.white,
-                                  height: 1.1,
-                                ),
-                              ),
-                              const SizedBox(height: 24),
-                              Text(
-                                'Ask Banter for any other insights you\'re curious about... We know it all 👀',
-                                textAlign: TextAlign.center,
-                                style: GoogleFonts.inter(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                  color: Colors.white,
-                                  height: 1.4,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const Spacer(),
-                        // Preset questions
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 24),
-                          child: SizedBox(
-                            height: 120,
-                            child: ListView.builder(
-                              scrollDirection: Axis.horizontal,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                              ),
-                              itemCount: _presetQuestions.length,
-                              itemBuilder: (context, index) {
-                                return Padding(
-                                  padding: const EdgeInsets.only(right: 12),
-                                  child: Material(
-                                    color: Colors.transparent,
-                                    child: InkWell(
-                                      onTap: _isLoading
-                                          ? null
-                                          : () => _sendPresetQuestion(
-                                              _presetQuestions[index],
-                                            ),
-                                      borderRadius: BorderRadius.circular(16),
-                                      splashColor: Colors.white.withValues(
-                                        alpha: 0.1,
-                                      ),
-                                      highlightColor: Colors.white.withValues(
-                                        alpha: 0.05,
-                                      ),
-                                      child: Container(
-                                        width: 280,
-                                        padding: const EdgeInsets.all(16),
-                                        decoration: BoxDecoration(
-                                          color: Colors.white.withValues(
-                                            alpha: 0.15,
-                                          ),
-                                          borderRadius: BorderRadius.circular(
-                                            16,
-                                          ),
-                                          border: Border.all(
-                                            color: Colors.white.withValues(
-                                              alpha: 0.3,
-                                            ),
-                                            width: 1,
-                                          ),
-                                        ),
-                                        child: Text(
-                                          _presetQuestions[index],
-                                          style: GoogleFonts.inter(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w500,
-                                            color: Colors.white,
-                                            height: 1.4,
-                                          ),
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        return SingleChildScrollView(
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                              minHeight: constraints.maxHeight,
+                            ),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const SizedBox(height: 24),
+                                Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 40,
+                                  ),
+                                  child: Column(
+                                    children: [
+                                      Text(
+                                        'Anything\nelse?',
+                                        textAlign: TextAlign.center,
+                                        style: GoogleFonts.inter(
+                                          fontSize: 64,
+                                          fontWeight: FontWeight.w900,
+                                          color: Colors.white,
+                                          height: 1.1,
                                         ),
                                       ),
+                                      const SizedBox(height: 24),
+                                      Text(
+                                        'Ask Banter for any other insights you\'re curious about... We know it all 👀',
+                                        textAlign: TextAlign.center,
+                                        style: GoogleFonts.inter(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w500,
+                                          color: Colors.white,
+                                          height: 1.4,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                // Preset questions
+                                Padding(
+                                  padding: const EdgeInsets.only(
+                                    top: 24,
+                                    bottom: 24,
+                                  ),
+                                  child: SizedBox(
+                                    height: 120,
+                                    child: ListView.builder(
+                                      scrollDirection: Axis.horizontal,
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 16,
+                                      ),
+                                      itemCount: _presetQuestions.length,
+                                      itemBuilder: (context, index) {
+                                        return Padding(
+                                          padding: const EdgeInsets.only(
+                                            right: 12,
+                                          ),
+                                          child: Material(
+                                            color: Colors.transparent,
+                                            child: InkWell(
+                                              onTap: _isLoading
+                                                  ? null
+                                                  : () => _sendPresetQuestion(
+                                                      _presetQuestions[index],
+                                                    ),
+                                              borderRadius:
+                                                  BorderRadius.circular(16),
+                                              splashColor: Colors.white
+                                                  .withValues(alpha: 0.1),
+                                              highlightColor: Colors.white
+                                                  .withValues(alpha: 0.05),
+                                              child: Container(
+                                                width: 280,
+                                                padding: const EdgeInsets.all(
+                                                  16,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.white
+                                                      .withValues(alpha: 0.15),
+                                                  borderRadius:
+                                                      BorderRadius.circular(16),
+                                                  border: Border.all(
+                                                    color: Colors.white
+                                                        .withValues(alpha: 0.3),
+                                                    width: 1,
+                                                  ),
+                                                ),
+                                                child: Text(
+                                                  _presetQuestions[index],
+                                                  style: GoogleFonts.inter(
+                                                    fontSize: 14,
+                                                    fontWeight: FontWeight.w500,
+                                                    color: Colors.white,
+                                                    height: 1.4,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        );
+                                      },
                                     ),
                                   ),
-                                );
-                              },
+                                ),
+                              ],
                             ),
                           ),
-                        ),
-                      ],
+                        );
+                      },
                     ),
                   )
                 : Container(
@@ -749,7 +790,7 @@ class _MessageBubble extends StatelessWidget {
                           ],
                         ),
                         const SizedBox(height: 8),
-                        ...chatResult!.insights.map(
+                        ...chatResult.insights.map(
                           (insight) => Padding(
                             padding: const EdgeInsets.only(bottom: 4),
                             child: Row(

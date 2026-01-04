@@ -1,7 +1,8 @@
 import 'dart:io';
+import 'package:banter/model/chat_analysis_response.dart';
 
-/// Service to store the uploaded chat file in memory
-/// This allows the file to be accessible across different screens
+/// Service to store the uploaded chat file and analysis data in memory
+/// This allows the data to be accessible across different screens
 class FileStorageService {
   static final FileStorageService _instance = FileStorageService._internal();
 
@@ -12,6 +13,7 @@ class FileStorageService {
   FileStorageService._internal();
 
   File? _uploadedChatFile;
+  ChatAnalysisResponse? _analysisData;
 
   /// Save the uploaded chat file
   void saveChatFile(File file) {
@@ -31,5 +33,25 @@ class FileStorageService {
   /// Clear the stored chat file
   void clearChatFile() {
     _uploadedChatFile = null;
+  }
+
+  /// Save the analysis data
+  void saveAnalysisData(ChatAnalysisResponse data) {
+    _analysisData = data;
+  }
+
+  /// Get the analysis data
+  ChatAnalysisResponse? getAnalysisData() {
+    return _analysisData;
+  }
+
+  /// Check if analysis data exists
+  bool hasAnalysisData() {
+    return _analysisData != null;
+  }
+
+  /// Clear the analysis data
+  void clearAnalysisData() {
+    _analysisData = null;
   }
 }

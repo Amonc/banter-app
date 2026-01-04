@@ -60,7 +60,7 @@ class AuthenticationException extends ApiException {
 
 class ChatAnalyzer {
   static String get _baseUrl {
-    if (!kDebugMode) {
+    if (kDebugMode) {
       return dotenv.env['API_BASE_URL'] ?? '';
     }
     // In debug mode, use 10.0.2.2 for Android emulator (maps to host localhost)
