@@ -108,7 +108,10 @@ class _TutorialPageState extends State<TutorialPage> {
       final selectedFile = io.File(filePath);
 
       // Save the file to memory for later use in chat screen
-      FileStorageService().saveChatFile(selectedFile);
+      final storageService = FileStorageService();
+      storageService.saveChatFile(selectedFile);
+      // Clear any existing chat history since we're starting with a new file
+      storageService.clearChatHistory();
 
       try {
         final response = await ChatAnalyzer.analyzeChat(selectedFile);

@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:banter/model/chat_analysis_response.dart';
+import 'package:banter/model/chat_message.dart';
 
 /// Service to store the uploaded chat file and analysis data in memory
 /// This allows the data to be accessible across different screens
@@ -14,6 +15,8 @@ class FileStorageService {
 
   File? _uploadedChatFile;
   ChatAnalysisResponse? _analysisData;
+  List<ChatMessage> _chatHistory = [];
+  String? _chatSessionId;
 
   /// Save the uploaded chat file
   void saveChatFile(File file) {
@@ -53,5 +56,36 @@ class FileStorageService {
   /// Clear the analysis data
   void clearAnalysisData() {
     _analysisData = null;
+  }
+
+  /// Save the chat history
+  void saveChatHistory(List<ChatMessage> messages) {
+    _chatHistory = List.from(messages);
+  }
+
+  /// Get the chat history
+  List<ChatMessage> getChatHistory() {
+    return List.from(_chatHistory);
+  }
+
+  /// Check if chat history exists
+  bool hasChatHistory() {
+    return _chatHistory.isNotEmpty;
+  }
+
+  /// Clear the chat history
+  void clearChatHistory() {
+    _chatHistory = [];
+    _chatSessionId = null;
+  }
+
+  /// Save the chat session ID
+  void saveChatSessionId(String? sessionId) {
+    _chatSessionId = sessionId;
+  }
+
+  /// Get the chat session ID
+  String? getChatSessionId() {
+    return _chatSessionId;
   }
 }

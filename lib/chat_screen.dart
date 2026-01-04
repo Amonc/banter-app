@@ -48,13 +48,27 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   void _initializeChatFile() {
+    final storageService = FileStorageService();
+
     // Try to get the file from memory first
-    final storedFile = FileStorageService().getChatFile();
+    final storedFile = storageService.getChatFile();
 
     if (storedFile != null) {
       // Use the file from memory
       _chatFile = storedFile;
       _isInitializing = false;
+
+      // Restore chat history and session if available
+      final savedHistory = storageService.getChatHistory();
+      if (savedHistory.isNotEmpty) {
+        _messages.addAll(savedHistory);
+        _sessionId = storageService.getChatSessionId();
+        // Scroll to bottom after restoring history
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _scrollToBottom();
+        });
+      }
+
       setState(() {});
     } else {
       // No file in memory, ask user to pick one
@@ -215,8 +229,6 @@ class _ChatScreenState extends State<ChatScreen> {
       _messageController.clear();
     });
 
-    _scrollToBottom();
-
     try {
       final response = await ChatAnalyzer.sendChatMessage(
         file: _chatFile!,
@@ -240,6 +252,11 @@ class _ChatScreenState extends State<ChatScreen> {
         );
         _isLoading = false;
       });
+
+      // Save chat history and session ID
+      final storageService = FileStorageService();
+      storageService.saveChatHistory(_messages);
+      storageService.saveChatSessionId(_sessionId);
 
       _scrollToBottom();
     } on RateLimitException catch (e) {
