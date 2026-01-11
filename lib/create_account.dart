@@ -1,4 +1,5 @@
 import 'package:banter/turorial_page.dart';
+import 'package:banter/services/file_storage_service.dart';
 import 'package:flutter/material.dart';
 import 'package:rive/rive.dart' hide Animation;
 import 'package:country_code_picker/country_code_picker.dart';
@@ -446,9 +447,12 @@ class _SplashScreenState extends State<CreateAccount>
                           child: SizedBox(
                             width: double.infinity,
                             child: ElevatedButton(
-                              onPressed: () {
-                                // Handle show me how action
-                                Navigator.push(
+                              onPressed: () async {
+                                // Mark onboarding complete so user skips splash/create account next time
+                                await FileStorageService.completeOnboarding(null);
+
+                                // Handle show me how action - clear navigation stack
+                                Navigator.pushAndRemoveUntil(
                                   context,
                                   PageRouteBuilder(
                                     pageBuilder: (context, animation, secondaryAnimation) =>
@@ -468,6 +472,7 @@ class _SplashScreenState extends State<CreateAccount>
                                     },
                                     transitionDuration: const Duration(milliseconds: 400),
                                   ),
+                                  (route) => false,
                                 );
                               },
                               style: ElevatedButton.styleFrom(

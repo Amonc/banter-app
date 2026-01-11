@@ -1,7 +1,8 @@
 import 'dart:convert';
-import 'package:banter/breakdown_screen.dart';
 import 'package:banter/model/chat_analysis_response.dart';
+import 'package:banter/services/file_storage_service.dart';
 import 'package:banter/splash_screen.dart';
+import 'package:banter/turorial_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:rive/rive.dart';
@@ -22,13 +23,17 @@ Future<void> main() async {
   final testJsonString = await rootBundle.loadString('assets/test.json');
   final testData = ChatAnalysisResponse.fromJson(json.decode(testJsonString));
 
-  runApp(MyApp(testData: testData));
+  // Check if onboarding (splash + create account) is complete
+  final onboardingComplete = await FileStorageService.isOnboardingComplete();
+
+  runApp(MyApp(testData: testData, onboardingComplete: onboardingComplete));
 }
 
 class MyApp extends StatelessWidget {
   final ChatAnalysisResponse testData;
+  final bool onboardingComplete;
 
-  const MyApp({super.key, required this.testData});
+  const MyApp({super.key, required this.testData, required this.onboardingComplete});
 
   @override
   Widget build(BuildContext context) {
@@ -37,7 +42,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
-      home: SplashScreen(),
+      home: onboardingComplete ? const TutorialPage() : SplashScreen(),
     );
   }
 }

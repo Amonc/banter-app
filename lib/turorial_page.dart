@@ -6,6 +6,8 @@ import 'package:banter/services/file_storage_service.dart';
 import 'package:flutter/material.dart';
 import 'package:rive/rive.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:path/path.dart' as path;
 
 export 'package:banter/backend/chat_func.dart'
     show
@@ -107,14 +109,20 @@ class _TutorialPageState extends State<TutorialPage> {
       final filePath = result.files.single.path!;
       final selectedFile = io.File(filePath);
 
+      // Copy file to app's documents directory for persistence
+      final appDir = await getApplicationDocumentsDirectory();
+      final fileName = path.basename(filePath);
+      final persistentPath = path.join(appDir.path, 'chat_file_$fileName');
+      final persistentFile = await selectedFile.copy(persistentPath);
+
       // Save the file to memory for later use in chat screen
       final storageService = FileStorageService();
-      storageService.saveChatFile(selectedFile);
+      storageService.saveChatFile(persistentFile);
       // Clear any existing chat history since we're starting with a new file
       storageService.clearChatHistory();
 
       try {
-        final response = await ChatAnalyzer.analyzeChat(selectedFile);
+        final response = await ChatAnalyzer.analyzeChat(persistentFile);
 
         setState(() {
           analysisResult = response;
