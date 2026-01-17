@@ -60,7 +60,7 @@ class AuthenticationException extends ApiException {
 
 class ChatAnalyzer {
   static String get _baseUrl {
-    if (kDebugMode) {
+    if (!kDebugMode) {
       return dotenv.env['API_BASE_URL'] ?? '';
     }
     // In debug mode, use 10.0.2.2 for Android emulator (maps to host localhost)
@@ -111,7 +111,7 @@ class ChatAnalyzer {
   /// Returns the analysis result as a [ChatAnalysisResponse]
   ///
   /// Throws [Exception] if the request fails
-  static Future<ChatAnalysisResponse> analyzeChat(File file) async {
+  static Future<ChatAnalysisResponse> analyzeChat(File file, {int? sampleSize}) async {
     try {
       final uri = Uri.parse('$_baseUrl/api/v1/analyze');
 
@@ -131,6 +131,11 @@ class ChatAnalyzer {
       );
 
       request.files.add(multipartFile);
+
+      // Add form fields
+      if (sampleSize != null) {
+        request.fields['sample_size'] = sampleSize.toString();
+      }
 
       // Send request
       var streamedResponse = await request.send();
@@ -178,7 +183,7 @@ class ChatAnalyzer {
     required File file,
     required String query,
     String? sessionId,
-    int sampleSize = 200,
+    int? sampleSize,
   }) async {
     try {
       final uri = Uri.parse('$_baseUrl/api/v1/analyze/chat');
@@ -202,7 +207,9 @@ class ChatAnalyzer {
 
       // Add form fields
       request.fields['query'] = query;
-      request.fields['sample_size'] = sampleSize.toString();
+      if (sampleSize != null) {
+        request.fields['sample_size'] = sampleSize.toString();
+      }
 
       if (sessionId != null && sessionId.isNotEmpty) {
         request.fields['session_id'] = sessionId;
