@@ -205,10 +205,10 @@ packages:
     dependency: "direct main"
     description:
       name: file_picker
-      sha256: f2d9f173c2c14635cc0e9b14c143c49ef30b4934e8d1d274d6206fcb0086a06f
+      sha256: b9c6bbfe174bcc1ec1e3a0de92e9b839fe553a46dd91862debfbbb5055ca876f
       url: "https://pub.dev"
     source: hosted
-    version: "10.3.3"
+    version: "10.3.9"
   fixnum:
     dependency: transitive
     description:
@@ -226,10 +226,10 @@ packages:
     dependency: "direct main"
     description:
       name: flutter_dotenv
-      sha256: b7c7be5cd9f6ef7a78429cabd2774d3c4af50e79cb2b7593e3d5d763ef95c61b
+      sha256: d4130c4a43e0b13fefc593bc3961f2cb46e30cb79e253d4a526b1b5d24ae1ce4
       url: "https://pub.dev"
     source: hosted
-    version: "5.2.1"
+    version: "6.0.0"
   flutter_launcher_icons:
     dependency: "direct dev"
     description:
@@ -268,10 +268,10 @@ packages:
     dependency: "direct main"
     description:
       name: google_fonts
-      sha256: "517b20870220c48752eafa0ba1a797a092fb22df0d89535fd9991e86ee2cdd9c"
+      sha256: bf1fe61d4a53420a94cbbd4326e07702d247757926f6955af9667765a8324413
       url: "https://pub.dev"
     source: hosted
-    version: "6.3.2"
+    version: "8.0.0"
   graphs:
     dependency: transitive
     description:
@@ -284,10 +284,10 @@ packages:
     dependency: "direct main"
     description:
       name: http
-      sha256: bb2ce4590bc2667c96f318d68cac1b5a7987ec819351d32b1c987239a815e007
+      sha256: "87721a4a50b19c7f1d49001e51409bddc46303966ce89a65af4f4e6004896412"
       url: "https://pub.dev"
     source: hosted
-    version: "1.5.0"
+    version: "1.6.0"
   http_parser:
     dependency: transitive
     description:
@@ -476,18 +476,18 @@ packages:
     dependency: "direct main"
     description:
       name: rive
-      sha256: "78d4d7014a30fd69b1c0802d77fbeb621ecdf043eec3a412ee54d6a5945aa92a"
+      sha256: d3901d82850e17395a149d05c8b446a16eca42b328bac6ca9bd9ed760016f20c
       url: "https://pub.dev"
     source: hosted
-    version: "0.14.0-dev.8"
+    version: "0.14.1"
   rive_native:
     dependency: transitive
     description:
       name: rive_native
-      sha256: b63bee17e27616b49d113998a982866dab9449f0726f7c78fe4028e361c3c6b0
+      sha256: "955e7820b7cd508f4885aa6f25d6240791c932756291c400326ab8b1f3c57c7d"
       url: "https://pub.dev"
     source: hosted
-    version: "0.0.11"
+    version: "0.1.1"
   shared_preferences:
     dependency: "direct main"
     description:

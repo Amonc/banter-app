@@ -86,7 +86,7 @@ class _TutorialPageState extends State<TutorialPage> {
 
   void _pickAndUploadFile() async {
     try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
+      FilePickerResult? result = await FilePicker.pickFiles(
         type: FileType.custom,
         allowedExtensions: ['zip', 'txt'],
         allowMultiple: false,
