@@ -33,11 +33,16 @@ class MyApp extends StatelessWidget {
   final ChatAnalysisResponse testData;
   final bool onboardingComplete;
 
-  const MyApp({super.key, required this.testData, required this.onboardingComplete});
+  const MyApp({
+    super.key,
+    required this.testData,
+    required this.onboardingComplete,
+  });
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: 'Flutter Demo',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
